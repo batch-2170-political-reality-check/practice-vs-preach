@@ -36,11 +36,14 @@ Goal: Give users transparent evidence behind the classifications.
 
 **data**: downloaded and renamed manifestos from 2025
 
-**notebooks -> Fetch_PlenaryMinutes**: API call to fetch speeches. Can be adjusted to election period of choice.
+**Fetch_PlenaryMinutes**: API call to fetch speeches. Can be adjusted to election period of choice.
 
-**notebooks -> poc_manifesto_summary**: First proof of concept by applying challenge to manifesto texts.
+**poc_manifesto_summary**: First proof of concept by applying challenge to manifesto texts.
 
 **requirements.txt**: requirements adapted from RAG challenge
+
+**dbtplenarprotokoll_kommentiert**: schema specification for https://www.bundestag.de/services/opendata that defines how all parliamentary debates and their components (who spoke, what they said, reactions, votes, etc.) are structured in machine-readable XML format for the German Bundestag's digital archives.
+(for fetching the plenary minutes I have used the API, not the structured xml)
 
 ```
 pratice-vc-preach/
@@ -54,5 +57,7 @@ pratice-vc-preach/
 ├── README.md
 ├── requirements.txt
 └── research
-    └── ...
+│   └── ...
+└── resources
+    └── dbtplenarprotokoll_kommentiert.pdf
 ```
