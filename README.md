@@ -20,6 +20,7 @@ Goal: Give users transparent evidence behind the classifications.
 ## Project Status
 
 **Status**: MVP in progress for Phase 1
+
 **Timeline**: 2 weeks
 
 
@@ -31,17 +32,24 @@ Goal: Give users transparent evidence behind the classifications.
 - [etc.]
 
 ## Project Structure
+
+
+**data**: downloaded and renamed manifestos from 2025
+**notebooks -> Fetch_PlenaryMinutes**: API call to fetch speeches. Can be adjusted to election period of choice.
+**notebooks -> poc_manifesto_summary**: First proof of concept by applying challenge to manifesto texts.
+**requirements.txt**: requirements adapted from RAG challenge
+
 ```
 pratice-vc-preach/
-├── data **(downloaded and renamed manifestos from 2025)**
+├── data
 │   └── ...
 ├── notebooks
-│   ├── Fetch_PlenaryMinutes.ipynb **(API call to fetch speeches. Can be adjusted to election period of choice.)**
-│   └── poc_manifesto_summary.ipynb **(First proof of concept by applying challenge to manifesto texts.)**
+│   ├── Fetch_PlenaryMinutes.ipynb
+│   └── poc_manifesto_summary.ipynb
 ├── pitchdeck
 │   └── practice-vs-preach-pitch-deck.pdf
 ├── README.md
-├── requirements.txt **(requirements adapted from RAG challenge)**
+├── requirements.txt
 └── research
     └── ...
 ```
