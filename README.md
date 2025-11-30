@@ -35,8 +35,11 @@ Goal: Give users transparent evidence behind the classifications.
 
 
 **data**: downloaded and renamed manifestos from 2025
+
 **notebooks -> Fetch_PlenaryMinutes**: API call to fetch speeches. Can be adjusted to election period of choice.
+
 **notebooks -> poc_manifesto_summary**: First proof of concept by applying challenge to manifesto texts.
+
 **requirements.txt**: requirements adapted from RAG challenge
 
 ```
