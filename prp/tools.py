@@ -3,6 +3,7 @@ import BundestagsAPy
 import pandas as pd
 from dotenv import load_dotenv
 import xmltodict
+import sys
 
 load_dotenv()
 
@@ -130,7 +131,7 @@ def get_speaker_info(speech_dict: dict) -> dict:
                     }
     return {}
 
-def main_process():
+def get_speeches():
     client = BundestagsAPy.Client(API_KEY)
 
     protocols = client.bt_plenarprotokoll(
@@ -169,5 +170,9 @@ def main_process():
 
     df.to_csv(DF_CSV)
 
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        if sys.argv[1] == "speeches":
+            print("Getting speeches...")
+            get_speeches()
 
-main_process()
