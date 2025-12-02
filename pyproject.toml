@@ -45,10 +45,11 @@ dependencies = [
     "pypdf==6.3.0",
     "pytest==8.3.4",
     "wikipedia==1.4.0",
+    "xmltodict>=1.0.2",
+    "selenium",
+    "jupyter>=1.1.1",
+    "jupyter-console>=6.6.3",
+    "ipython-pygments-lexers>=1.1.1",
 ]
 
-[dependency-groups]
-dev = [
-    "ipykernel",
-    "jupyter",
-]
+
