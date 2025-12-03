@@ -16,7 +16,8 @@ docker-build:
 	$(BUILDX) docker build --tag=$$GAR_IMAGE:dev .
 
 docker-run:
-	docker run --rm -it -e PORT=8000 -p 8000:8000 --env-file .env $$GAR_IMAGE:dev
+	@./docker-run.sh
+	#docker run --rm -it -e PORT=8000 -p 8000:8000 --env-file .env $$GAR_IMAGE:dev
 
 docker-build-prod:
 	docker build \
