@@ -8,12 +8,13 @@ data "google_project" "project" {
 
 
 locals {
+  region   = "EU"
   location = "europe-west10"
 }
 
 provider "google" {
   project = "lw-speech-preach"
-  region  = "EU"
+  region  = local.location
 }
 
 terraform {

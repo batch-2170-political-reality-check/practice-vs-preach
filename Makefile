@@ -10,18 +10,22 @@ speeches:
 
 #################### DOCKER #######################
 BUILDX ?= DOCKER_BUILDKIT=1
+TAG := $(shell date +%Y%m%d-%H%M%S)
 
-docker_build:
+docker-build:
 	$(BUILDX) docker build --tag=$$GAR_IMAGE:dev .
 
-docker_run:
+docker-run:
 	docker run --rm -it -e PORT=8000 -p 8000:8000 --env-file .env $$GAR_IMAGE:dev
 
-docker_build_prod:
+docker-build-prod:
 	docker build \
   --platform linux/amd64 \
-  -t $$GCP_REGION-docker.pkg.dev/$$GCP_PROJECT/taxifare/$$GAR_IMAGE:prod .
+  -t $$GCP_REGION-docker.pkg.dev/$$GCP_PROJECT/$$GCP_PROJECT/$$GAR_IMAGE:$(TAG) .
 
-docker_push_prod:
-	docker push $$GCP_REGION-docker.pkg.dev/$$GCP_PROJECT/taxifare/$$GAR_IMAGE:prod
+docker-push-prod:
+	docker push $$GCP_REGION-docker.pkg.dev/$$GCP_PROJECT/$$GCP_PROJECT/$$GAR_IMAGE:$(TAG)
+
+docker-deploy: docke_buil_prod docker-push-prod
+	cd terraform && terraform apply -var="rag_image_tag=$(TAG)" -auto-approve
 ################################################
