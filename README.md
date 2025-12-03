@@ -61,3 +61,17 @@ pratice-vc-preach/
 └── resources
     └── dbtplenarprotokoll_kommentiert.pdf
 ```
+
+## Usage
+
+### Deployment
+
+To deploy the `rag` service to Cloud Run:
+
+1. Configure the docker registry authentication:
+
+    gcloud auth configure-docker europe-west10-docker.pkg.dev
+
+1. Build, push the image and update deployment with:
+
+      make docker-deploy
