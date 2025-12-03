@@ -15,4 +15,4 @@ app.add_middleware(
 
 @app.get("/")
 def root():
-    return {'greeting': 'Hello'}
+    return {'greeting': 'PracticePreach FastAPI is running!'}
