@@ -1,9 +1,8 @@
-import requests, os, time
+import requests, os, time, csv, sys
 import BundestagsAPy
 import pandas as pd
 from dotenv import load_dotenv
 import xmltodict
-import sys
 
 load_dotenv()
 
@@ -12,8 +11,6 @@ DF_CSV = os.environ.get("DF_CSV")
 URL_LIST = os.environ.get("URL_LIST")
 API_KEY = os.environ.get("API_KEY")
 BASE = "https://search.dip.bundestag.de/api/v1"
-OUT_DIR = "tmp/plenar_xml"
-os.makedirs(OUT_DIR, exist_ok=True)
 
 def fetch_and_parse_xml(url: str) -> dict:
     """
@@ -147,8 +144,6 @@ def get_speeches():
         'text': pd.Series(dtype='object')
     })
 
-    #urls = ["https://www.bundestag.de/resource/blob/1117036/21034.xml"]
-
     all_urls = pd.read_csv(URL_LIST).iloc[:,0]
 
     for url in all_urls:
@@ -170,9 +165,52 @@ def get_speeches():
 
     df.to_csv(DF_CSV)
 
+def url_collector(wahlperiode=20, start_num=1, stop_num=214, start_id=866350):
+    
+    wierd_id = start_id
+    num = start_num
+    in_order = True
+    url_list = []
+
+    while True:
+        
+        if num > stop_num:
+            break
+
+        url = f"https://www.bundestag.de/resource/blob/{wierd_id}/{wahlperiode:02d}{num:03d}.xml"
+        plus_one_url = f"https://www.bundestag.de/resource/blob/{wierd_id}/{wahlperiode:02d}{num+1:03d}.xml"
+        
+        response = requests.get(url)
+        if response.status_code == 200:
+            url_list.append(url)
+            print(f"Adding {url}")
+            if in_order:
+                num += 1
+            else:
+                in_order = True
+                num += 2
+        elif in_order:
+            response = requests.get(plus_one_url)
+            if response.status_code == 200:
+                url_list.append(plus_one_url)
+                print(f"Adding {plus_one_url}")
+                in_order = False
+
+        wierd_id += 1
+
+    return url_list    
+    
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         if sys.argv[1] == "speeches":
             print("Getting speeches...")
             get_speeches()
+        elif sys.argv[1] == "collect":
+            print("Collecting urls...")
+            url_list = url_collector()
+            with open('speaches_test.csv', 'w', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow(url_list)
+
+
 

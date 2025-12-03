@@ -5,4 +5,4 @@ default:
 	@echo "Then run: make speeches"
 
 speeches:
-	@uv run python -m prp.tools speeches
+	@uv run python -m practicepreach.tools speeches
