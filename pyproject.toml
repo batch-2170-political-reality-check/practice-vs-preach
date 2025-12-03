@@ -1,7 +1,7 @@
 [project]
 name = "practice-vs-preach"
 version = "0.1.0"
-requires-python = ">=3.13"
+requires-python = ">=3.12,<3.14"
 dependencies = [
     "bundestagsapy>=1.4",
     "dotenv>=0.9.9",
@@ -50,6 +50,5 @@ dependencies = [
     "jupyter>=1.1.1",
     "jupyter-console>=6.6.3",
     "ipython-pygments-lexers>=1.1.1",
+    "fastapi>=0.123.5",
 ]
-
-
