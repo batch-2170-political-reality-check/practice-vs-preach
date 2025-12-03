@@ -5,6 +5,10 @@ API](https://manifesto-project.wzb.eu/information/documents/api).
 
 ### Usage
 
+Provided you have set `MANIFESTO_API_KEY` in your environment (you get
+automatically get one when registering the Manifesto Project or just ask
+Foudil),
+
     python download_manifestos.py
 
 Creates `german_manifestos/` and downloads full-texts into it for the period
