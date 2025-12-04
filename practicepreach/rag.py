@@ -20,10 +20,10 @@ from datetime import datetime
 from practicepreach.params import *
 
 # Debug http calls.
-http_client.HTTPConnection.debuglevel = 0
-for name in ("mlflow", "urllib3", "requests"):
-    logging.getLogger(name).setLevel(logging.DEBUG)
-    logging.getLogger(name).addHandler(logging.StreamHandler())
+# http_client.HTTPConnection.debuglevel = 0
+# for name in ("mlflow", "urllib3", "requests"):
+#     logging.getLogger(name).setLevel(logging.DEBUG)
+#     logging.getLogger(name).addHandler(logging.StreamHandler())
 
 class Rag:
     def __init__(self):
@@ -85,8 +85,7 @@ class Rag:
         return f"{len(all_splits)} chunks embedded"
 
 
-    def retrieve_topic_chunks(self, query, party, start_date, end_date, type = None):
-
+    def retrieve_topic_chunks(self, query, party, start_date:datetime, end_date:datetime, type = None):
 
         start_date_int = int(start_date.strftime("%Y%m%d"))
         end_date_int =int(end_date.strftime("%Y%m%d"))
@@ -100,7 +99,7 @@ class Rag:
         return retrieved_docs
 
 
-    def answer(self, query, party, start_date, end_date, prompt_template=None):
+    def answer(self, query, party, start_date:datetime, end_date:datetime, prompt_template=None):
         """Answer a query using the vector store and the language model."""
 
         retrieved_docs = self.retrieve_topic_chunks(self, query, party, start_date, end_date)
@@ -117,7 +116,7 @@ class Rag:
         )
 
         # Get the answer from the language model
-        answer = self.llm.invoke(prompt)
+        answer = self.model.invoke(prompt)
         return answer.content
 
     def shutdown(self):
