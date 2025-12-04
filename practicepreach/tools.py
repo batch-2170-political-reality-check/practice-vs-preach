@@ -8,7 +8,7 @@ from practicepreach.params import *
 PARTIES_LIST = ["AfD", "SPD", "CDU/CSU", "BÜNDNIS 90/DIE GRÜNEN", "Die Linke"]
 BASE = "https://search.dip.bundestag.de/api/v1"
 
-def fetch_and_parse_xml(url: str) -> dict:
+def fetch_and_parse_xml(url: str, store_it_to: str = None) -> dict:
     """
     Fetch XML from URL and parse it into a dictionary using xmltodict.
     Args:
@@ -22,7 +22,13 @@ def fetch_and_parse_xml(url: str) -> dict:
 
     print("Parsing XML with xmltodict...")
     xml_dict = xmltodict.parse(response.content)
-
+    if store_it_to is not None:
+        os.makedirs(store_it_to, exist_ok=True)
+        filename = url.split("/")[-1]
+        filepath = os.path.join(store_it_to, filename)
+        print(f"Storing XML to {filepath}...")
+        with open(filepath, "wb") as f:
+            f.write(response.content)
     return xml_dict
 
 def get_speeches_by_fraktion(xml_data: dict, fraktion: str) -> list:
@@ -125,7 +131,8 @@ def get_speaker_info(speech_dict: dict) -> dict:
     return {}
 
 def get_speeches():
-    client = BundestagsAPy.Client(API_KEY)
+
+    client = BundestagsAPy.Client(BUNDESTAG_API_KEY)
 
     protocols = client.bt_plenarprotokoll(
         start_date="2025-01-01",
@@ -134,16 +141,17 @@ def get_speeches():
     )
 
     df = pd.DataFrame({
+        'type': pd.Series(dtype='object'),
         'date': pd.Series(dtype='object'),
         'id': pd.Series(dtype='object'),
         'party': pd.Series(dtype='object'),
         'text': pd.Series(dtype='object')
     })
 
-    all_urls = pd.read_csv(URL_LIST).iloc[:,0]
+    all_urls = pd.read_csv(SPEECHES_URLS).iloc[:,0]
 
     for url in all_urls:
-        xml_data = fetch_and_parse_xml(url)
+        xml_data = fetch_and_parse_xml(url, SPEECHES_XML_DIR)
         data = xml_data["dbtplenarprotokoll"]["@sitzung-datum"]
 
         for party in PARTIES_LIST:
@@ -153,6 +161,7 @@ def get_speeches():
                 text = extract_speech_text(speech)
                 speaker_info = get_speaker_info(speech)
                 df = pd.concat([df, pd.DataFrame([{
+                    'type':'speech',
                     'date': data,
                     'id': speech.get('@id', ''),
                     'party': speaker_info.get('fraktion', ''),

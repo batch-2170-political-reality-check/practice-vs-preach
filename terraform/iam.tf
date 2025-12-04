@@ -10,3 +10,10 @@ resource "google_service_account" "project_sa" {
   account_id   = "batch-2170-project"
   display_name = "General-purpose service account for the project"
 }
+
+# Grant Generative AI User role
+resource "google_project_iam_member" "project_sa_ai_user" {
+  project = data.google_project.project.project_id
+  role    = "roles/aiplatform.user"
+  member  = "serviceAccount:${google_service_account.project_sa.email}"
+}
