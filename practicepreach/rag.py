@@ -1,5 +1,3 @@
-import re
-import json
 import logging, http.client as http_client
 
 import pandas as pd
@@ -7,13 +5,10 @@ import pandas as pd
 from langchain.chat_models import init_chat_model
 from langchain_chroma import Chroma
 from langchain_classic import hub
-from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.document_loaders.csv_loader import CSVLoader
-from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_text_splitters import NLTKTextSplitter
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from datetime import datetime
 
@@ -59,8 +54,12 @@ class Rag:
         num_of_stored = self.vector_store._collection.count()
 
         if num_of_stored == 0:
-            num_of_chunks = self.add_to_vector_store(SPEECHES_CSV)
-            print(f"Embedded {num_of_chunks} chunks into the vector store.")
+            num_of_chunks_speech = self.add_to_vector_store(SPEECHES_CSV)
+            print(f"Embedded {num_of_chunks_speech} speech chunks into the vector store.")
+            num_of_chunks_manifesto = self.add_to_vector_store(MANIFESTOS_CSV)
+            print(f"Embedded {num_of_chunks_manifesto} manifesto chunks into the vector store.")
+
+
         else:
             print(f"Vector store already has {num_of_stored} vectores. Skipping embedding.")
 
@@ -87,7 +86,7 @@ class Rag:
         return int(dt.strftime("%Y%m%d"))
 
     def embed_and_store(self, doc, text_splitter, batch_size=200):
-        """Split JSON-loaded documents into chunks and store them in a vector store."""
+        """Split documents into chunks and store them in a vector store."""
         # Split the pages into chunks
         all_splits = text_splitter.split_documents(doc)
 
@@ -99,13 +98,13 @@ class Rag:
         return f"{len(all_splits)} chunks embedded"
 
 
-    def retrieve_topic_chunks(self, query, party, start_date:datetime, end_date:datetime, doctype = None):
+    def retrieve_topic_chunks(self, query, party, start_date:datetime, end_date:datetime, doctype):
 
         start_date_int = int(start_date.strftime("%Y%m%d"))
         end_date_int =int(end_date.strftime("%Y%m%d"))
 
         #ToDo: !!once the csv had a populated type column, add it here to make it queriable
-        filter={'$and': [{'party': {'$eq': party}}, {'date': {'$gt':start_date_int}}, {'date': {'$lt': end_date_int}}]}
+        filter={'$and': [{'party': {'$eq': party}}, {'date': {'$gt':start_date_int}}, {'date': {'$lt': end_date_int}}]}#, {'type': {'$eq': doctype}}]}
 
         # Retrieve similar documents from the vector store
         retrieved_docs = self.vector_store.similarity_search(query,k=50, filter=filter)
