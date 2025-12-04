@@ -11,7 +11,7 @@ resource "google_service_account" "project_sa" {
   display_name = "General-purpose service account for the project"
 }
 
-# Grant Generative AI User role
+# Grant Vertex AI User role
 resource "google_project_iam_member" "project_sa_ai_user" {
   project = data.google_project.project.project_id
   role    = "roles/aiplatform.user"

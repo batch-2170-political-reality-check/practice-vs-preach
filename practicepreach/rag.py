@@ -25,8 +25,18 @@ for name in ("mlflow", "urllib3", "requests"):
 
 class Rag:
     def __init__(self):
+        # Debugging
+        if GOOGLE_API_KEY:
+            masked_api_key = '*' * len(GOOGLE_API_KEY)
+            print(f"Masked API Key: {masked_api_key}")
+        else:
+            print("API Key not found in environment variables.")
 
-        self.embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
+        self.embeddings = GoogleGenerativeAIEmbeddings(
+            model="models/text-embedding-004",
+            google_api_key=os.getenv("GOOGLE_API_KEY"),
+            credentials=None  # Explicitly disable ADC
+        )
         self.model = init_chat_model("google_genai:gemini-2.5-flash-lite")
 
         self.prompt_template = ChatPromptTemplate.from_messages([
