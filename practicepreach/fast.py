@@ -37,7 +37,7 @@ def get_topics():
 
     return {'topics': ['faith', 'hope', 'charity', 'love', 'forgiveness']}
 @app.get("/summaries")
-def get_summary(topic: str, daterange: str):
+def get_summary(topic: str, start_date: str, end_date: str):
 
 
     return {'party1': '**This party sucks!**',
