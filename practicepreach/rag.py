@@ -99,7 +99,7 @@ class Rag:
         return f"{len(all_splits)} chunks embedded"
 
 
-    def retrieve_topic_chunks(self, query, party, start_date:datetime, end_date:datetime, type = None):
+    def retrieve_topic_chunks(self, query, party, start_date:datetime, end_date:datetime, doctype = None):
 
         start_date_int = int(start_date.strftime("%Y%m%d"))
         end_date_int =int(end_date.strftime("%Y%m%d"))
@@ -116,7 +116,7 @@ class Rag:
     def answer(self, query, party, start_date:datetime, end_date:datetime, prompt_template=None):
         """Answer a query using the vector store and the language model."""
 
-        retrieved_docs = self.retrieve_topic_chunks(self, query, party, start_date, end_date)
+        retrieved_docs = self.retrieve_topic_chunks(query, party, start_date, end_date)
 
         # Create the prompt
         docs_content = "\n\n".join(doc.page_content for doc in retrieved_docs)
