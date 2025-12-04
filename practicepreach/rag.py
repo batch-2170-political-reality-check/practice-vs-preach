@@ -49,7 +49,7 @@ class Rag:
         num_of_stored = self.vector_store._collection.count()
 
         if num_of_stored == 0:
-            self.add_to_vector_store(SPEECHES_CSV)
+            num_of_chunks = self.add_to_vector_store(SPEECHES_CSV)
             print(f"Embedded {num_of_chunks} chunks into the vector store.")
         else:
             print(f"Vector store already has {num_of_stored} vectores. Skipping embedding.")
