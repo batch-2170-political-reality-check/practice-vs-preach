@@ -31,6 +31,6 @@ docker-build-prod:
 docker-push-prod:
 	docker push $$GCP_REGION-docker.pkg.dev/$$GCP_PROJECT/$$GCP_PROJECT/$$GAR_IMAGE:$(TAG)
 
-docker-deploy: docke_buil_prod docker-push-prod
+deploy: docker-build-prod docker-push-prod
 	cd terraform && terraform apply -var="rag_image_tag=$(TAG)" -auto-approve
 ################################################
