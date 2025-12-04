@@ -65,10 +65,13 @@ class Rag:
 
         return f"{len(all_splits)} chunks embedded"
 
-    def answer(self, query, file, prompt_template=None):
+    def answer(self, query, party, date, prompt_template=None):
         """Answer a query using the vector store and the language model."""
+
+        filter={'$and': [{'party': {'$eq': party}}, {'date': {'$eq': date}}]}
+
         # Retrieve similar documents from the vector store
-        retrieved_docs = self.vector_store.similarity_search(query,k=50, filter={'source': file})
+        retrieved_docs = self.vector_store.similarity_search(query,k=50, filter=filter)
 
         # Create the prompt
         docs_content = "\n\n".join(doc.page_content for doc in retrieved_docs)
