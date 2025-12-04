@@ -7,3 +7,4 @@ german_manifestos/
 .terraform/
 tf.plan
 data/chroma_store/
+data/xmls/
