@@ -66,9 +66,22 @@ class Rag:
         else:
             print(f"Vector store already has {num_of_stored} vectores. Skipping embedding.")
 
-    def add_to_vector_store(self, doc, text_splitter):
+    def add_to_vector_store(self, file_path: str):
         """Add new documents to the vector store from CSV file"""
-        pass
+        loader = CSVLoader(file_path=SPEECHES_CSV, metadata_columns=['date','id','party','type'])
+
+        data = loader.load()
+
+        for doc in data:
+            date_str = doc.metadata["date"]   # e.g. "27.11.2025"
+            doc.metadata["date"] = self.convert_date_eu_to_int(date_str)
+
+        text_splitter = NLTKTextSplitter(
+            chunk_size=500,
+            chunk_overlap=200
+        )
+        num_of_chunks = self.embed_and_store(data, text_splitter)
+        print(f"Embedded {num_of_chunks} chunks into the vector store.")
 
     def convert_date_eu_to_int(self,date_str: str) -> int:
         """Convert 'DD.MM.YYYY' → 20251127."""
