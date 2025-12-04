@@ -9,9 +9,9 @@ def require_env(*names: str):
 
 load_dotenv()
 
-require_env("PERSIST_DIR", "SPEECHES_CSV", "URL_LIST", "API_KEY")
+require_env("PERSIST_DIR", "SPEECHES_CSV", "SPEECHES_URLS", "BUNDESTAG_API_KEY")
 
 PERSIST_DIR = os.environ.get("PERSIST_DIR")
 SPEECHES_CSV = os.environ.get("SPEECHES_CSV")
-URL_LIST = os.environ.get("URL_LIST")
-API_KEY = os.environ.get("API_KEY")
+SPEECHES_URLS = os.environ.get("SPEECHES_URLS")
+BUNDESTAG_API_KEY = os.environ.get("BUNDESTAG_API_KEY")

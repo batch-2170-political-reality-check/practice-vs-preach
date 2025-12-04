@@ -1,23 +1,27 @@
 default:
 	@echo "For downloading data and speeches dataset compiling:"
-	@echo "Set URL_LIST in .env to the path of csv file which contains Bundestag xml urls."
+	@echo "Set SPEECHE_URL in .env to the path of csv file which contains Bundestag xml urls."
 	@echo "Set DF_CSV in .env to the path where resulted data frame will be stored as csv file"
 	@echo "Then run: make speeches"
 
-speeches:
+extract-speeches:
 	@uv run python -m practicepreach.tools speeches
 
 
 #################### DOCKER #######################
 BUILDX ?= DOCKER_BUILDKIT=1
 TAG := $(shell date +%Y%m%d-%H%M%S)
+ifeq ($(BUILD_FORCE),1)
+BUILD_FORCE = --no-cache --progress=plain
+else
+BUILD_FORCE =
+endif
 
 docker-build:
-	$(BUILDX) docker build --tag=$$GAR_IMAGE:dev .
+	$(BUILDX) docker --debug build $(BUILD_FORCE) --tag=$$GAR_IMAGE:dev .
 
 docker-run:
-	@./docker-run.sh
-	#docker run --rm -it -e PORT=8000 -p 8000:8000 --env-file .env $$GAR_IMAGE:dev
+	bin/docker-run.sh
 
 docker-build-prod:
 	docker build \

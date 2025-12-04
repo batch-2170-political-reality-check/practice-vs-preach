@@ -1,22 +1,27 @@
-import pandas as pd
-import os
-from pprint import pprint
-from IPython.display import Markdown
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
-from langchain_community.document_loaders import PyPDFLoader
-import pprint
-from langchain_core.prompts import ChatPromptTemplate
 import re
-from langchain_chroma import Chroma
-from langchain.chat_models import init_chat_model
-from langchain_classic import hub
 import json
-from langchain_core.documents import Document
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+import logging, http.client as http_client
+
+import pandas as pd
+
+from langchain.chat_models import init_chat_model
+from langchain_chroma import Chroma
+from langchain_classic import hub
+from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.document_loaders.csv_loader import CSVLoader
+from langchain_core.documents import Document
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_text_splitters import NLTKTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from practicepreach.params import *
+
+# Debug http calls.
+http_client.HTTPConnection.debuglevel = 0
+for name in ("mlflow", "urllib3", "requests"):
+    logging.getLogger(name).setLevel(logging.DEBUG)
+    logging.getLogger(name).addHandler(logging.StreamHandler())
 
 class Rag:
     def __init__(self):

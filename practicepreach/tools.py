@@ -125,7 +125,7 @@ def get_speaker_info(speech_dict: dict) -> dict:
     return {}
 
 def get_speeches():
-    client = BundestagsAPy.Client(API_KEY)
+    client = BundestagsAPy.Client(BUNDESTAG_API_KEY)
 
     protocols = client.bt_plenarprotokoll(
         start_date="2025-01-01",
@@ -140,7 +140,7 @@ def get_speeches():
         'text': pd.Series(dtype='object')
     })
 
-    all_urls = pd.read_csv(URL_LIST).iloc[:,0]
+    all_urls = pd.read_csv(SPEECHES_URLS).iloc[:,0]
 
     for url in all_urls:
         xml_data = fetch_and_parse_xml(url)
