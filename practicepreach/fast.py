@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+
+from practicepreach import constants
 from practicepreach.rag import Rag
 
 @asynccontextmanager
@@ -32,13 +34,14 @@ app.add_middleware(
 def root():
     return {'greeting': 'PracticePreach FastAPI is running!'}
 
-@app.get("/topics")
-def get_topics():
+@app.get("/parameters")
+def get_parameters():
+    return {
+        'political_topics': constants.POLITICAL_TOPICS,
+        'bundestag_wahlperiode': constants.BUNDESTAG_WAHLPERIODE,
+    }
 
-    return {'topics': ['faith', 'hope', 'charity', 'love', 'forgiveness']}
 @app.get("/summaries")
 def get_summary(topic: str, start_date: str, end_date: str):
-
-
     return {'party1': '**This party sucks!**',
             'party2': '*This party is kinda okay.*'}

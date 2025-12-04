@@ -23,3 +23,17 @@ BUNDESTAG_WAHLPERIODE = {
     20: (date(2021, 10, 26), date(2025, 3, 22)),
     21: (date(2025, 3, 23), date.today())  # still ongoing, would need to be updated in the next Wahlperiode
 }
+
+# https://www.notion.so/ChatGPT-generated-Topic-based-on-all-Manifestos-from-2025-2bc01f2a08b980ffa6e5c00e92d9f24b
+POLITICAL_TOPICS = {
+    "economy": "Economy & Growth / Germany as an Industrial Nation",
+    "social": "Social Security & Welfare / Pensions",
+    "work": "Work, Labour Market & Skilled Workers",
+    "education": "Education & Equal Opportunities",
+    "environment": "Climate, Environment & Energy",
+    "migration": "Migration, Integration & Citizenship",
+    "housing": "Housing & Urban Development",
+    "technology": "Digitalization & Technological Innovation",
+    "security": "Internal Security, Law & Order",
+    "foreign_policy": "Foreign Policy, Security & Europe",
+}
