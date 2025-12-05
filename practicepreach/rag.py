@@ -14,6 +14,7 @@ from datetime import datetime
 
 from practicepreach.params import *
 from practicepreach.alignment import analyze_tone_differences
+from practicepreach.wahlperiode_converter import *
 
 # Debug http calls.
 # http_client.HTTPConnection.debuglevel = 0
@@ -122,8 +123,11 @@ class Rag:
 
         speech_docs = self.retrieve_topic_chunks(query, party, start_date,
                                                  end_date, 'speech')
-        manifesto_docs = self.retrieve_topic_chunks(query, party, start_date,
-                                                    end_date, 'manifesto')
+
+        manifesto_docs = self.retrieve_topic_chunks(query, party,
+                                                    convert_to_wp_start(start_date),
+                                                    convert_to_wp_start(end_date),
+                                                    'manifesto')
 
         # Create the prompt
         speech_content = "\n\n".join(doc.page_content for doc in speech_docs)
