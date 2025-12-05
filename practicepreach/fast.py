@@ -5,6 +5,13 @@ from contextlib import asynccontextmanager
 from practicepreach import constants
 from practicepreach.rag import Rag
 
+ALIGNEMENT_LABELS = [
+    'Does not align well with manifesto',
+    'Aligns partly with manifesto',
+    'Aligns mostly with manifesto',
+    'Aligns well with manifesto',
+]
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Starting up...")
@@ -51,11 +58,14 @@ def get_summary(topic: str, start_date: str, end_date: str):
 
     rag: Rag = app.state.rag
 
-    summaries = {} # party → summary
+    summaries = {} # party → {'summary':"blbal", 'label':"Aligns…"}
     for party in constants.PARTIES_LIST:
+        import random
+        label = random.choice(ALIGNEMENT_LABELS)
+
         summary = rag.answer(query, party, dt_start, dt_end)
         if summary is not None:
-            summaries[party] = summary
+            summaries[party] = {'summary': summary, 'label': label}
 
     return summaries
 
