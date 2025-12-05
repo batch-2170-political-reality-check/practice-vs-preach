@@ -9,10 +9,17 @@ def require_env(*names: str):
 
 load_dotenv()
 
+<<<<<<< HEAD
 # Variables required for the Rag
 
 require_env("PERSIST_DIR", "SPEECHES_CSV", "GOOGLE_API_KEY")
+=======
+# TODO split params into rag and tools so we can require env vars accordingly.
+#  For now we'll only require vars for the rag here to simplify deployment.
+require_env("PERSIST_DIR", "SPEECHES_CSV", "MANIFESTOS_CSV","GOOGLE_API_KEY") # "SPEECHES_URLS", "BUNDESTAG_API_KEY"
+>>>>>>> 94ddd3b79bfc6ab12a938ef167366d338cb7bc9f
 
 PERSIST_DIR = os.environ.get("PERSIST_DIR")
 SPEECHES_CSV = os.environ.get("SPEECHES_CSV")
+MANIFESTOS_CSV=os.environ.get("MANIFESTOS_CSV")
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY") # langchain_google_genai
