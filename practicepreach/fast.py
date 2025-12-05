@@ -53,7 +53,7 @@ def get_summary(topic: str, start_date: str, end_date: str):
 
     summaries = {} # party → summary
     for party in constants.PARTIES_LIST:
-        suumary = rag.answer(query, party, dt_start, dt_end)
+        summary = rag.answer(query, party, dt_start, dt_end)
         if summary is not None:
             summaries[party] = summary
 

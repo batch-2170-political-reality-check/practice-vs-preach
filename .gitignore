@@ -2,9 +2,11 @@
 .DS_Store
 tmp/
 .venv/
-prp/__pycache__
+__pycache__/
 german_manifestos/
 .terraform/
 tf.plan
 data/chroma_store/
 data/xmls/
+
+# FIXME cleanup repo from garbage files __pycache__ or .DS_Store

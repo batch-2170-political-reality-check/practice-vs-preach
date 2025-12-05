@@ -5,8 +5,9 @@ locals {
   rag_image     = "${local.registry_host}/${local.image_repo}/${local.image_name}"
 
   env_vars = {
-    PERSIST_DIR  = "data/chroma_store"
-    SPEECHES_CSV = "data/speeches-wahlperiode-21-small.csv"
+    PERSIST_DIR    = "data/chroma_store"
+    SPEECHES_CSV   = "data/speeches-wahlperiode-21-small.csv"
+    MANIFESTOS_CSV = "data/manifestos.csv"
   }
 }
 
