@@ -2,11 +2,16 @@ import requests, os, time, csv, sys
 import BundestagsAPy
 import pandas as pd
 import xmltodict
+from practicepreach.rag import Rag
 
 from practicepreach.params import *
 
+require_env("SPEECHES_XML_DIR")
+SPEECHES_XML_DIR = os.environ.get("SPEECHES_XML_DIR")
+
 PARTIES_LIST = ["AfD", "SPD", "CDU/CSU", "BÜNDNIS 90/DIE GRÜNEN", "Die Linke"]
 BASE = "https://search.dip.bundestag.de/api/v1"
+
 
 def fetch_and_parse_xml(url: str, store_it_to: str = None) -> dict:
     """
@@ -130,15 +135,7 @@ def get_speaker_info(speech_dict: dict) -> dict:
                     }
     return {}
 
-def get_speeches():
-
-    client = BundestagsAPy.Client(BUNDESTAG_API_KEY)
-
-    protocols = client.bt_plenarprotokoll(
-        start_date="2025-01-01",
-        end_date="2025-12-01",
-        max_results=False
-    )
+def get_speeches(speeches_urls: str, speeches_csv: str):
 
     df = pd.DataFrame({
         'type': pd.Series(dtype='object'),
@@ -148,10 +145,10 @@ def get_speeches():
         'text': pd.Series(dtype='object')
     })
 
-    all_urls = pd.read_csv(SPEECHES_URLS).iloc[:,0]
+    all_urls = pd.read_csv(urls).iloc[:,0]
 
     for url in all_urls:
-        xml_data = fetch_and_parse_xml(url, SPEECHES_XML_DIR)
+        xml_data = fetch_and_parse_xml(speeches_urls, SPEECHES_XML_DIR)
         data = xml_data["dbtplenarprotokoll"]["@sitzung-datum"]
 
         for party in PARTIES_LIST:
@@ -168,51 +165,15 @@ def get_speeches():
                     'text': text
                 }])], ignore_index=True)
 
-    df.to_csv(SPEECHES_CSV)
-
-def url_collector(wahlperiode=20, start_num=1, stop_num=214, start_id=866350):
-
-    wierd_id = start_id
-    num = start_num
-    in_order = True
-    url_list = []
-
-    while True:
-
-        if num > stop_num:
-            break
-
-        url = f"https://www.bundestag.de/resource/blob/{wierd_id}/{wahlperiode:02d}{num:03d}.xml"
-        plus_one_url = f"https://www.bundestag.de/resource/blob/{wierd_id}/{wahlperiode:02d}{num+1:03d}.xml"
-
-        response = requests.get(url)
-        if response.status_code == 200:
-            url_list.append(url)
-            print(f"Adding {url}")
-            if in_order:
-                num += 1
-            else:
-                in_order = True
-                num += 2
-        elif in_order:
-            response = requests.get(plus_one_url)
-            if response.status_code == 200:
-                url_list.append(plus_one_url)
-                print(f"Adding {plus_one_url}")
-                in_order = False
-
-        wierd_id += 1
-
-    return url_list
+    df.to_csv(speeches_csv)
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
+    if len(sys.argv) > 2 and os.path.isfile(sys.argv[2]):
         if sys.argv[1] == "speeches":
             print("Getting speeches...")
-            get_speeches()
-        elif sys.argv[1] == "collect":
-            print("Collecting urls...")
-            url_list = url_collector()
-            with open('speaches_test.csv', 'w', newline='') as f:
-                writer = csv.writer(f)
-                writer.writerow(url_list)
+            get_speeches(sys.argv[2], sys.argv[3])
+        elif sys.argv[1] == "vectorize":
+            print("Vectorizing data...")
+            rag = Rag()
+            num_of_chunks = rag.add_to_vector_store(sys.argv[2])
+            print(f"Embedded {num_of_chunks} chunks into the vector store.")

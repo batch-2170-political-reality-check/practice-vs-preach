@@ -6,6 +6,20 @@ RUN apt-get update && \
     update-ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
+# Install gcsfuse dependencies
+RUN apt-get update && \
+    apt-get install -y curl lsb-release gnupg && \
+    rm -rf /var/lib/apt/lists/*
+
+# Add Cloud Storage FUSE apt repo and install
+RUN export GCSFUSE_REPO=gcsfuse-$(lsb_release -c -s) && \
+    echo "deb https://packages.cloud.google.com/apt $GCSFUSE_REPO main" \
+      > /etc/apt/sources.list.d/gcsfuse.list && \
+    curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
+    apt-get update && \
+    apt-get install -y gcsfuse && \
+    rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 COPY pyproject.toml uv.lock ./

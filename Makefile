@@ -1,12 +1,5 @@
 default:
-	@echo "For downloading data and speeches dataset compiling:"
-	@echo "Set SPEECHE_URL in .env to the path of csv file which contains Bundestag xml urls."
-	@echo "Set DF_CSV in .env to the path where resulted data frame will be stored as csv file"
-	@echo "Then run: make extract-speeches"
-
-extract-speeches:
-	@uv run python -m practicepreach.tools speeches
-
+	@echo There are no default targets
 
 #################### DOCKER #######################
 BUILDX ?= DOCKER_BUILDKIT=1
