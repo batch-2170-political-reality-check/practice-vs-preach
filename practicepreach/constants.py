@@ -37,3 +37,5 @@ POLITICAL_TOPICS = {
     "security": "Internal Security, Law & Order",
     "foreign_policy": "Foreign Policy, Security & Europe",
 }
+
+PARTIES_LIST = ["AfD", "SPD", "CDU/CSU", "BÜNDNIS 90/DIE GRÜNEN", "Die Linke"]

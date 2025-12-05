@@ -5,11 +5,11 @@ import xmltodict
 from practicepreach.rag import Rag
 
 from practicepreach.params import *
+from practicepreach.constants import *
 
 require_env("SPEECHES_XML_DIR")
 SPEECHES_XML_DIR = os.environ.get("SPEECHES_XML_DIR")
 
-PARTIES_LIST = ["AfD", "SPD", "CDU/CSU", "BÜNDNIS 90/DIE GRÜNEN", "Die Linke"]
 BASE = "https://search.dip.bundestag.de/api/v1"
 
 

@@ -59,7 +59,6 @@ class Rag:
             num_of_chunks_manifesto = self.add_to_vector_store(MANIFESTOS_CSV)
             print(f"Embedded {num_of_chunks_manifesto} manifesto chunks into the vector store.")
 
-
         else:
             print(f"Vector store already has {num_of_stored} vectores. Skipping embedding.")
 
@@ -98,7 +97,7 @@ class Rag:
         return f"{len(all_splits)} chunks embedded"
 
 
-    def retrieve_topic_chunks(self, query, party, start_date:datetime, end_date:datetime, doctype):
+    def retrieve_topic_chunks(self, query, party, start_date:datetime, end_date:datetime):
 
         start_date_int = int(start_date.strftime("%Y%m%d"))
         end_date_int =int(end_date.strftime("%Y%m%d"))

@@ -43,5 +43,23 @@ def get_parameters():
 
 @app.get("/summaries")
 def get_summary(topic: str, start_date: str, end_date: str):
-    return {'party1': '**This party sucks!**',
-            'party2': '*This party is kinda okay.*'}
+    dt_start = _str2date(start_date)
+    dt_end = _str2date(end_date)
+
+    topic_long = constants.POLITICAL_TOPICS[topic]
+    query = f"What does the party say about {topic_long}"
+
+    rag: Rag = app.state.rag
+
+    summaries = {} # party → summary
+    for party in constants.PARTIES_LIST:
+        suumary = rag.answer(query, party, dt_start, dt_end)
+        if summary is not None:
+            summaries[party] = summary
+
+    return summaries
+
+
+from datetime import datetime, date
+def _str2date(s: str) -> datetime:
+    return datetime.strptime(s, "%Y-%m-%d").date()
