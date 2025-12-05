@@ -1,4 +1,9 @@
+import logging
+
 from langchain_core.prompts import ChatPromptTemplate
+
+
+logger = logging.getLogger(__name__)
 
 tone_analysis_prompt = ChatPromptTemplate.from_messages([
     ("system", """You are an expert at analyzing political texts and comparing their tone and style.
@@ -46,7 +51,7 @@ def analyze_tone_differences(
     })
 
     # Get analysis from LLM
-    print("\nScoring alignment with LLM...")
+    logger.info("Scoring alignment with LLM...")
     response = model.invoke(prompt)
 
     return  response.content

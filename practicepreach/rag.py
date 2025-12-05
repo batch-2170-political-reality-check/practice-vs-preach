@@ -21,14 +21,16 @@ from practicepreach.alignment import analyze_tone_differences
 #     logging.getLogger(name).setLevel(logging.DEBUG)
 #     logging.getLogger(name).addHandler(logging.StreamHandler())
 
+logger = logging.getLogger(__name__)
+
 class Rag:
     def __init__(self):
         # Debugging
         if GOOGLE_API_KEY:
             masked_api_key = '*' * len(GOOGLE_API_KEY)
-            print(f"Masked API Key: {masked_api_key}")
+            logger.info(f"Masked API Key: {masked_api_key}")
         else:
-            print("API Key not found in environment variables.")
+            logger.info("API Key not found in environment variables.")
 
         self.embeddings = GoogleGenerativeAIEmbeddings(
             model="models/text-embedding-004",
@@ -52,12 +54,12 @@ class Rag:
 
         if num_of_stored == 0:
             num_of_chunks_speech = self.add_to_vector_store(SPEECHES_CSV)
-            print(f"Embedded {num_of_chunks_speech} speech chunks into the vector store.")
+            logger.info(f"Embedded {num_of_chunks_speech} speech chunks into the vector store.")
             num_of_chunks_manifesto = self.add_to_vector_store(MANIFESTOS_CSV)
-            print(f"Embedded {num_of_chunks_manifesto} manifesto chunks into the vector store.")
+            logger.info(f"Embedded {num_of_chunks_manifesto} manifesto chunks into the vector store.")
 
         else:
-            print(f"Vector store already has {num_of_stored} vectores. Skipping embedding.")
+            logger.info(f"Vector store already has {num_of_stored} vectores. Skipping embedding.")
 
     def add_to_vector_store(self, file_path: str):
         """Add new documents to the vector store from CSV file"""
@@ -124,6 +126,8 @@ class Rag:
                                                  end_date, 'speech')
         manifesto_docs = self.retrieve_topic_chunks(query, party, start_date,
                                                     end_date, 'manifesto')
+        logger.info(f"speech → {speech_docs[:5]}")
+        logger.info(f"manifesto → {manifesto_docs[:5]}")
 
         # Create the prompt
         speech_content = "\n\n".join(doc.page_content for doc in speech_docs)
