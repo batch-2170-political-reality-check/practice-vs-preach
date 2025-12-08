@@ -62,11 +62,7 @@ class Rag:
             else:
                 num_of_chunks_speech = self.add_to_vector_store(DATA_CVS)
 
-            print(f"Embedded {num_of_chunks_speech} chunks into the vector store.")
-            num_of_chunks_speech = self.add_to_vector_store(SPEECHES_CSV)
-            logger.info(f"Embedded {num_of_chunks_speech} speech chunks into the vector store.")
-            num_of_chunks_manifesto = self.add_to_vector_store(MANIFESTOS_CSV)
-            logger.info(f"Embedded {num_of_chunks_manifesto} manifesto chunks into the vector store.")
+            logger.info(f"Embedded {num_of_chunks_speech} chunks into the vector store.")
         else:
             logger.info(f"Vector store already has {num_of_stored} vectores. Skipping embedding.")
 
