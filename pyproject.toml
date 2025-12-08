@@ -3,7 +3,6 @@ name = "practice-vs-preach"
 version = "0.1.0"
 requires-python = ">=3.12,<3.14"
 dependencies = [
-
     "bundestagsapy>=1.4",
     "dotenv>=0.9.9",
     "google-genai==1.51.0",
@@ -52,4 +51,7 @@ dependencies = [
     "jupyter-console>=6.6.3",
     "ipython-pygments-lexers>=1.1.1",
     "fastapi>=0.123.5",
+    "google-cloud-storage>=3.6.0",
+    "gcsfs>=2025.12.0",
+    "fsspec>=2025.12.0",
 ]

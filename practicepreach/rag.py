@@ -2,6 +2,8 @@ import logging, http.client as http_client
 
 import pandas as pd
 
+import time
+
 from langchain.chat_models import init_chat_model
 from langchain_chroma import Chroma
 from langchain_classic import hub
@@ -52,16 +54,21 @@ class Rag:
         num_of_stored = self.vector_store._collection.count()
 
         if num_of_stored == 0:
-            num_of_chunks_speech = self.add_to_vector_store(SPEECHES_CSV)
-            print(f"Embedded {num_of_chunks_speech} speech chunks into the vector store.")
-            num_of_chunks_manifesto = self.add_to_vector_store(MANIFESTOS_CSV)
-            print(f"Embedded {num_of_chunks_manifesto} manifesto chunks into the vector store.")
+            if is_cloud_run():
+                df = load_csv_from_gcs(DATA_CVS)
+                num_of_chunks_speech = self.add_to_vector_store(df)
+            else:
+                num_of_chunks_speech = self.add_to_vector_store(DATA_CVS)
+            print(f"Embedded {num_of_chunks_speech} chunks into the vector store.")
 
         else:
             print(f"Vector store already has {num_of_stored} vectores. Skipping embedding.")
 
     def add_to_vector_store(self, file_path: str):
         """Add new documents to the vector store from CSV file"""
+        print(f'Processing file: {file_path}')
+        time.sleep(10)
+
         loader = CSVLoader(file_path=file_path, metadata_columns=['date','id','party','type'])
 
         data = loader.load()
@@ -82,17 +89,41 @@ class Rag:
         dt = datetime.strptime(date_str, "%d.%m.%Y")
         return int(dt.strftime("%Y%m%d"))
 
+    def manual_embed_and_store(self, doc, text_splitter, batch_size=10):
+        all_splits = text_splitter.split_documents(doc)
+        num_of_splits = len(all_splits)
+        print(f"Total chunks to embed: {num_of_splits}")
+
+        for i in range(0, num_of_splits, batch_size):
+            batch_docs = all_splits[i:i + batch_size]
+
+            # Extract text list
+            texts = [d.page_content for d in batch_docs]
+
+            # Embed with manual batching
+            embeddings = self.embeddings.embed_documents(texts)
+
+            # Add with precomputed embeddings
+            self.vector_store.add_documents(
+                documents=batch_docs,
+                embeddings=embeddings
+            )
+
+        return f"{num_of_splits} chunks embedded"
+
     def embed_and_store(self, doc, text_splitter, batch_size=200):
         """Split documents into chunks and store them in a vector store."""
         # Split the pages into chunks
         all_splits = text_splitter.split_documents(doc)
+        num_of_splits = len(all_splits)
+        print(f"Total chunks to embed: {num_of_splits}")
 
         # Add the chunks to the vector store in batches
-        for i in range(0, len(all_splits), batch_size):
+        for i in range(0, num_of_splits, batch_size):
             batch = all_splits[i:i + batch_size]
             self.vector_store.add_documents(documents=batch)
 
-        return f"{len(all_splits)} chunks embedded"
+        return f"{num_of_splits} chunks embedded"
 
 
     def retrieve_topic_chunks(

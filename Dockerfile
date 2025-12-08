@@ -28,7 +28,8 @@ RUN uv sync
 RUN uv run python -c "import nltk; nltk.download('punkt_tab')"
 
 COPY practicepreach practicepreach/
-COPY data data/
+#COPY data data/
 COPY bin/entrypoint.sh /entrypoint.sh
 
-ENTRYPOINT ["/entrypoint.sh"]
+#ENTRYPOINT ["/entrypoint.sh"]
+CMD bash
