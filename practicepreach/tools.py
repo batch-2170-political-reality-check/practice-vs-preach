@@ -2,6 +2,7 @@ import requests, os, time, csv, sys
 import BundestagsAPy
 import pandas as pd
 import xmltodict
+import time
 from practicepreach.rag import Rag
 
 from practicepreach.params import *
@@ -175,7 +176,10 @@ if __name__ == "__main__":
         elif sys.argv[1] == "vectorize":
             file_to_process = sys.argv[2]
             print(f"Vectorizing {file_to_process}...")
+            time.sleep(2)
             rag = Rag(populate_vector_store=False)
             print(f'{rag.get_num_of_vectors()} vectors currently in the vector store.')
+            time.sleep(2)
             num_of_chunks = rag.add_to_vector_store(path_to_file=file_to_process)
             print(f"Embedded {num_of_chunks} chunks into the vector store.")
+            print(f'{rag.get_num_of_vectors()} vectors currently in the vector store.')
