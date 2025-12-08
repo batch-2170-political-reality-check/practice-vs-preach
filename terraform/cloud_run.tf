@@ -5,9 +5,9 @@ locals {
   rag_image     = "${local.registry_host}/${local.image_repo}/${local.image_name}"
 
   env_vars = {
-    PERSIST_DIR    = "data/chroma_store"
-    SPEECHES_CSV   = "data/speeches-wahlperiode-21-small.csv"
-    MANIFESTOS_CSV = "data/manifestos.csv"
+    PERSIST_DIR = "data/chroma_store"
+    DATA_CSV    = "data/speeches-wahlperiode-21-small.csv"
+    GS_URI      = "gs://batch-2170-political-reality-check"
   }
 }
 

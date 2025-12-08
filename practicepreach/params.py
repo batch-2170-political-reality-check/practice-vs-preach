@@ -16,7 +16,7 @@ load_dotenv()
 require_env("PERSIST_DIR", "DATA_CSV", "GS_URI","GOOGLE_API_KEY")
 
 PERSIST_DIR = os.environ.get("PERSIST_DIR")
-DATA_CVS = os.environ.get("DATA_CSV")
+DATA_CSV = os.environ.get("DATA_CSV")
 GS_URI = os.environ.get("GS_URI")
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY") # langchain_google_genai
 

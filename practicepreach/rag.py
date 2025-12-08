@@ -57,10 +57,10 @@ class Rag:
 
         if num_of_stored == 0 and populate_vector_store:
             if is_cloud_run():
-                df = load_csv_from_gcs(DATA_CVS)
+                df = load_csv_from_gcs(DATA_CSV)
                 num_of_chunks_speech = self.add_to_vector_store(df)
             else:
-                num_of_chunks_speech = self.add_to_vector_store(DATA_CVS)
+                num_of_chunks_speech = self.add_to_vector_store(DATA_CSV)
 
             logger.info(f"Embedded {num_of_chunks_speech} chunks into the vector store.")
         else:
