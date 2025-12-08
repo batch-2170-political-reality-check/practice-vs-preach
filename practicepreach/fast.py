@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -12,18 +14,26 @@ ALIGNEMENT_LABELS = [
     'Aligns well with manifesto',
 ]
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(name)s | %(levelname)s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
+logger = logging.getLogger(__name__)
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("Starting up...")
+    logger.info("Starting up...")
     # e.g. connect to DB, load ML model, init client, create resources
 
     app.state.rag = Rag()
 
-    print("Starting is complete.")
+    logger.info("Starting is complete.")
     yield
 
     # e.g. close DB connection, free resources
-    print("Shutting down...")
+    logger.info("Shutting down...")
     app.state.rag.shutdown()
 
 app = FastAPI(lifespan=lifespan)

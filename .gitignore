@@ -1,11 +1,19 @@
 .env
+
 .DS_Store
-tmp/
+__MACOSX
 .venv/
-__pycache__/
+.pytest_cache
+__pycache__
+*checkpoint.ipynb
+*.ipynb_checkpoints
+
+tmp/
 german_manifestos/
+
 .terraform/
 tf.plan
+
 data/chroma_store/
 data/xmls/
 
