@@ -31,5 +31,4 @@ COPY practicepreach practicepreach/
 #COPY data data/
 COPY bin/entrypoint.sh /entrypoint.sh
 
-#ENTRYPOINT ["/entrypoint.sh"]
-CMD bash
+ENTRYPOINT ["/entrypoint.sh"]
