@@ -56,41 +56,26 @@ class Rag:
 
         num_of_stored = self.vector_store._collection.count()
 
-        if num_of_stored == 0 and populate_vector_store:
-            if is_cloud_run():
-                df = load_csv_from_gcs(DATA_CSV)
-                num_of_chunks_speech = self.add_to_vector_store(df)
-            else:
-                num_of_chunks_speech = self.add_to_vector_store(DATA_CSV)
+        logger.info(f"Number of vectors stored at instance startup: {num_of_stored}")
 
+        if num_of_stored == 0 and populate_vector_store:
+    
+            num_of_chunks_speech = self.add_to_vector_store(DATA_CSV)
             logger.info(f"Embedded {num_of_chunks_speech} chunks into the vector store.")
+
         else:
+
             logger.info(f"Vector store already has {num_of_stored} vectores. Skipping embedding.")
 
     def get_num_of_vectors(self) -> int:
         """Get the number of vectors stored in the vector store."""
         return self.vector_store._collection.count()
 
-    def df_to_documents(df, content_col, meta_cols=None):
-        docs = []
-        meta_cols = meta_cols or []
-
-        for _, row in df.iterrows():
-            content = str(row[content_col])
-            metadata = {col: row[col] for col in meta_cols}
-            docs.append(Document(page_content=content, metadata=metadata))
-
-        return docs
-
     def add_to_vector_store(self, data_source):
         """Add new documents to the vector store from CSV file"""
-        if is_cloud_run():
-            logger.info('Processing provided dataframe.')
-            data = self.df_to_documents(data_source, content_col='text', meta_columns=['date','id','party','type'])
-        else:
-            logger.info(f'Processing file: {data_source}')
-            loader = CSVLoader(file_path=data_source, metadata_columns=['date','id','party','type'])
-            data = loader.load()
+        logger.info(f'Processing file: {data_source}')
+        loader = CSVLoader(file_path=data_source, metadata_columns=['date','id','party','type'])
+        data = loader.load()
 
         for doc in data:
             date_str = doc.metadata["date"]   # e.g. "27.11.2025"

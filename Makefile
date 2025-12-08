@@ -28,5 +28,6 @@ deploy: docker-build-prod docker-push-prod
 	#cd terraform && terraform apply -var="rag_image_tag=$(TAG)" -auto-approve
 	gcloud run deploy rag-service \
     --image=$$GCP_REGION-docker.pkg.dev/$$GCP_PROJECT/$$GCP_PROJECT/$$GAR_IMAGE:$(TAG) \
-    --region=europe-west10
+    --region=europe-west10 \
+    --env-vars-file=env_gcloud_run.yaml
 ################################################
