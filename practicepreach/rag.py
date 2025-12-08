@@ -144,8 +144,8 @@ class Rag:
         #ToDo: !!once the csv had a populated type column, add it here to make it queriable
         filter={'$and': [
             {'party': {'$eq': party}},
-            {'date': {'$gt':start_date_int}},
-            {'date': {'$lt': end_date_int}},
+            {'date': {'$gte':start_date_int}},
+            {'date': {'$lte': end_date_int}},
             {'type': {'$eq': doctype}},
         ]}
 
@@ -159,11 +159,11 @@ class Rag:
         """Answer a query using the vector store and the language model."""
 
         speech_docs = self.retrieve_topic_chunks(query, party, start_date,
-                                                 end_date, 'speech')
+                                                 end_date, doctype='speech')
         manifesto_docs = self.retrieve_topic_chunks(query, party,
                                                     convert_to_wp_start(start_date),
                                                     convert_to_wp_start(end_date),
-                                                    'manifesto')
+                                                    doctype='manifesto')
         logger.info(f"speech → {speech_docs[:5]}")
         logger.info(f"manifesto → {manifesto_docs[:5]}")
 
