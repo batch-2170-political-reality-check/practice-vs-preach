@@ -1,5 +1,5 @@
 .env
-
+fetched_data/
 .DS_Store
 __MACOSX
 .venv/

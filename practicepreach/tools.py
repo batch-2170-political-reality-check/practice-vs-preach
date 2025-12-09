@@ -180,6 +180,6 @@ if __name__ == "__main__":
             rag = Rag(populate_vector_store=False)
             print(f'{rag.get_num_of_vectors()} vectors currently in the vector store.')
             time.sleep(2)
-            num_of_chunks = rag.add_to_vector_store(path_to_file=file_to_process)
+            num_of_chunks = rag.add_to_vector_store(data_source=file_to_process)
             print(f"Embedded {num_of_chunks} chunks into the vector store.")
             print(f'{rag.get_num_of_vectors()} vectors currently in the vector store.')
