@@ -3,7 +3,7 @@ default:
 
 #################### DOCKER #######################
 BUILDX ?= DOCKER_BUILDKIT=1
-TAG := $(shell date +%Y%m%d-%H%M%S)
+TAG ?= $(shell date +%Y%m%d-%H%M%S)
 ifeq ($(BUILD_FORCE),1)
 BUILD_FORCE = --no-cache --progress=plain
 else
@@ -15,6 +15,19 @@ docker-build:
 
 docker-run:
 	bin/docker-run.sh
+
+docker-build-dev:
+	docker build \
+  --platform linux/amd64 \
+  -t $$GCP_REGION-docker.pkg.dev/$$GCP_PROJECT/$$GCP_PROJECT/$$GAR_IMAGE:dev .
+
+docker-push-dev:
+	docker push $$GCP_REGION-docker.pkg.dev/$$GCP_PROJECT/$$GCP_PROJECT/$$GAR_IMAGE:dev
+
+deploy-dev: docker-build-dev docker-push-dev
+	gcloud run deploy rag-service-dev \
+    --image=$$GCP_REGION-docker.pkg.dev/$$GCP_PROJECT/$$GCP_PROJECT/$$GAR_IMAGE:dev \
+    --region=europe-west10
 
 docker-build-prod:
 	docker build \

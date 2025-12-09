@@ -18,6 +18,9 @@ if ! mountpoint -q /mnt/chromadb; then
   echo "UUID=$(blkid -s UUID -o value ${disk_device}) /mnt/chromadb ext4 discard,defaults 0 2" >> /etc/fstab
 fi
 
+# Fetch vector data
+gsutil -m cp -r 'gs://batch-2170-political-reality-check/data/chroma_store/*' /mnt/chromadb/
+
 # Install Docker
 if ! command -v docker &> /dev/null; then
   echo "Installing Docker..."
@@ -40,7 +43,7 @@ docker run -d \
   --name chromadb \
   --restart unless-stopped \
   -p 8000:8000 \
-  -v /mnt/chromadb:/chroma/chroma \
+  -v /mnt/chromadb:/data \
   -e IS_PERSISTENT=TRUE \
   -e ANONYMIZED_TELEMETRY=FALSE \
   chromadb/chroma:latest

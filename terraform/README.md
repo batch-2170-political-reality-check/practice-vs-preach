@@ -6,6 +6,37 @@ Resources are stored/deployed to GCP and managed with terraform.
 
 See [documentation](https://registry.terraform.io/providers/hashicorp/google/latest/docs).
 
+### GCP Auth
+
+Make sure you're using your user authentication, not the service account one:
+
+```
+unset GOOGLE_API_KEY
+unset GOOGLE_APPLICATION_CREDENTIALS
+gcloud auth list
+```
+
+Possibly login:
+
+```
+gcloud auth login
+gcloud auth application-default login
+```
+
+Also check your config:
+
+```
+$ gcloud config list
+[billing]
+quota_project = lw-speech-preach
+[core]
+account = foudil.bretel@gmail.com
+disable_usage_reporting = False
+project = lw-speech-preach
+
+Your active configuration is: [default]
+```
+
 ### Rollback
 
 ```

@@ -4,6 +4,7 @@ import pandas as pd
 
 import time
 
+import chromadb
 from langchain.chat_models import init_chat_model
 from langchain_chroma import Chroma
 from langchain_classic import hub
@@ -47,24 +48,29 @@ class Rag:
             ("human", """Context: {context}  Question: {question}""")
         ])
 
-        self.vector_store = Chroma(
-            collection_name="political_collection",
-            persist_directory=PERSIST_DIR,
-            embedding_function=self.embeddings,
-        )
+        # Initialize Chroma - either external or embedded
+        if USE_EXTERNAL_CHROMA:
+            logger.info(f"Connecting to external ChromaDB at {CHROMADB_HOST}:{CHROMADB_PORT}")
+            chroma_client = chromadb.HttpClient(
+                host=CHROMADB_HOST,
+                port=int(CHROMADB_PORT)
+            )
+            self.vector_store = Chroma(
+                client=chroma_client,
+                collection_name="political_collection",
+                embedding_function=self.embeddings,
+            )
+        else:
+            logger.info(f"Using embedded Chroma at {PERSIST_DIR}")
+            self.vector_store = Chroma(
+                collection_name="political_collection",
+                persist_directory=PERSIST_DIR,
+                embedding_function=self.embeddings,
+            )
 
         num_of_stored = self.vector_store._collection.count()
-
-        if num_of_stored == 0 and populate_vector_store:
-            if is_cloud_run():
-                df = load_csv_from_gcs(DATA_CSV)
-                num_of_chunks_speech = self.add_to_vector_store(df)
-            else:
-                num_of_chunks_speech = self.add_to_vector_store(DATA_CSV)
-
-            logger.info(f"Embedded {num_of_chunks_speech} chunks into the vector store.")
-        else:
-            logger.info(f"Vector store already has {num_of_stored} vectores. Skipping embedding.")
+        # Assuming populated db
+        logger.info(f"Vector store has {num_of_stored} vectores.")
 
     def get_num_of_vectors(self) -> int:
         """Get the number of vectors stored in the vector store."""

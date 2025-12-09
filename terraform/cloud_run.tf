@@ -5,9 +5,15 @@ locals {
   rag_image     = "${local.registry_host}/${local.image_repo}/${local.image_name}"
 
   env_vars = {
-    PERSIST_DIR   = "data/chroma_store"
-    DATA_CSV      = "data/speeches-wahlperiode-21-small.csv"
-    GS_URI        = "gs://batch-2170-political-reality-check"
+    PERSIST_DIR = "data/chroma_store"
+    DATA_CSV    = "data/speeches-wahlperiode-21-small.csv"
+    GS_URI      = "gs://batch-2170-political-reality-check"
+  }
+
+  env_vars_dev = {
+    PERSIST_DIR   = local.env_vars.PERSIST_DIR
+    DATA_CSV      = local.env_vars.DATA_CSV
+    GS_URI        = local.env_vars.GS_URI
     CHROMADB_HOST = google_compute_instance.chromadb.network_interface[0].network_ip
     CHROMADB_PORT = "8000"
   }
@@ -82,11 +88,6 @@ resource "google_cloud_run_v2_service" "rag_service" {
       }
     }
 
-    vpc_access {
-      connector = google_vpc_access_connector.connector.id
-      egress    = "PRIVATE_RANGES_ONLY" # Only internal traffic uses VPC
-    }
-
     # Service account (recommended for security)
     service_account = google_service_account.project_sa.email
   }
@@ -109,6 +110,76 @@ resource "google_cloud_run_v2_service_iam_member" "public_access" {
   project  = google_cloud_run_v2_service.rag_service.project
   location = google_cloud_run_v2_service.rag_service.location
   name     = google_cloud_run_v2_service.rag_service.name
+  role     = "roles/run.invoker"
+  member   = "allUsers"
+}
+
+# Dev RAG service with external ChromaDB
+resource "google_cloud_run_v2_service" "rag_service_dev" {
+  name     = "rag-service-dev"
+  location = local.location
+  project  = data.google_project.project.project_id
+
+  template {
+    containers {
+      image = "${local.registry_host}/${local.image_repo}/rag:dev"
+
+      dynamic "env" {
+        for_each = local.env_vars_dev
+        content {
+          name  = env.key
+          value = env.value
+        }
+      }
+
+      resources {
+        limits = {
+          cpu    = "1"
+          memory = "1Gi"
+        }
+        startup_cpu_boost = true
+      }
+
+      env {
+        name = "GOOGLE_API_KEY"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.gemini_api_key.secret_id
+            version = "latest"
+          }
+        }
+      }
+
+      ports {
+        container_port = 8000
+      }
+    }
+
+    vpc_access {
+      connector = google_vpc_access_connector.connector.id
+      egress    = "PRIVATE_RANGES_ONLY"
+    }
+
+    service_account = google_service_account.project_sa.email
+  }
+
+  traffic {
+    type    = "TRAFFIC_TARGET_ALLOCATION_TYPE_LATEST"
+    percent = 100
+  }
+
+  lifecycle {
+    ignore_changes = [template, traffic]
+  }
+
+  depends_on = [google_project_service.cloud_run, google_vpc_access_connector.connector]
+}
+
+# Dev service publicly accessible
+resource "google_cloud_run_v2_service_iam_member" "public_access_dev" {
+  project  = google_cloud_run_v2_service.rag_service_dev.project
+  location = google_cloud_run_v2_service.rag_service_dev.location
+  name     = google_cloud_run_v2_service.rag_service_dev.name
   role     = "roles/run.invoker"
   member   = "allUsers"
 }
@@ -142,8 +213,13 @@ resource "google_secret_manager_secret_iam_member" "cloud_run_secret_access" {
   member    = "serviceAccount:${google_service_account.project_sa.email}"
 }
 
-# Output the service URL
+# Output the service URLs
 output "rag_service_url" {
   value       = google_cloud_run_v2_service.rag_service.uri
-  description = "URL of the deployed RAG service"
+  description = "URL of the deployed RAG service (embedded Chroma)"
+}
+
+output "rag_service_dev_url" {
+  value       = google_cloud_run_v2_service.rag_service_dev.uri
+  description = "URL of the deployed RAG dev service (external ChromaDB)"
 }

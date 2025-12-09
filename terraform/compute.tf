@@ -54,9 +54,9 @@ resource "google_compute_router" "router" {
 
 # Cloud NAT for outbound internet access
 resource "google_compute_router_nat" "nat" {
-  name   = "project-nat"
-  router = google_compute_router.router.name
-  region = local.location
+  name    = "project-nat"
+  router  = google_compute_router.router.name
+  region  = local.location
   project = data.google_project.project.project_id
 
   nat_ip_allocate_option             = "AUTO_ONLY"
@@ -124,6 +124,7 @@ resource "google_compute_disk" "chromadb_data" {
 # $(gcloud info --format="value(basic.python_location)") -m pip install numpy
 # gcloud compute ssh chromadb-vm --zone=europe-west10-a --tunnel-through-iap # --troubleshoot
 # curl http://localhost:8000/api/v1/heartbeat
+# curl http://localhost:8000/api/v2/tenants/default_tenant/databases/default_database/collections
 resource "google_compute_instance" "chromadb" {
   name         = "chromadb-vm"
   machine_type = "e2-small" # 2 vCPU, 2GB RAM - adjust as needed
