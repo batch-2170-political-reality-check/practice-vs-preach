@@ -113,7 +113,7 @@ resource "google_compute_firewall" "allow_iap_ssh" {
 # Persistent disk for ChromaDB data
 resource "google_compute_disk" "chromadb_data" {
   name    = "chromadb-data"
-  type    = "pd-standard" # or pd-ssd for better performance
+  type    = "pd-ssd" # SSD for faster vector search with 250K+ vectors
   zone    = "${local.location}-a"
   size    = 20 # GB - adjust based on your needs
   project = data.google_project.project.project_id
@@ -127,7 +127,7 @@ resource "google_compute_disk" "chromadb_data" {
 # curl http://localhost:8000/api/v2/tenants/default_tenant/databases/default_database/collections
 resource "google_compute_instance" "chromadb" {
   name         = "chromadb-vm"
-  machine_type = "e2-small" # 2 vCPU, 2GB RAM - adjust as needed
+  machine_type = "e2-standard-2" # 2 vCPU, 8GB RAM. Or n2-standard-2
   zone         = "${local.location}-a"
   project      = data.google_project.project.project_id
 

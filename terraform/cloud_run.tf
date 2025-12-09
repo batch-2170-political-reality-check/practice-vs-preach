@@ -5,16 +5,16 @@ locals {
   rag_image     = "${local.registry_host}/${local.image_repo}/${local.image_name}"
 
   env_vars = {
+    LOG_LEVEL   = "INFO"
     PERSIST_DIR = "data/chroma_store"
     DATA_CSV    = "data/speeches-wahlperiode-21-small.csv"
-    LOG_LEVEL   = "INFO"
   }
 
   env_vars_dev = {
+    LOG_LEVEL     = "DEBUG"
     DATA_CSV      = local.env_vars.DATA_CSV
     CHROMADB_HOST = google_compute_instance.chromadb.network_interface[0].network_ip
     CHROMADB_PORT = "8000"
-    LOG_LEVEL     = "DEBUG"
   }
 }
 
