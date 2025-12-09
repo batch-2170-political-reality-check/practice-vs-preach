@@ -59,7 +59,7 @@ class Rag:
         logger.info(f"Number of vectors stored at instance startup: {num_of_stored}")
 
         if num_of_stored == 0 and populate_vector_store:
-    
+
             num_of_chunks_speech = self.add_to_vector_store(DATA_CSV)
             logger.info(f"Embedded {num_of_chunks_speech} chunks into the vector store.")
 
@@ -126,7 +126,7 @@ class Rag:
         ]}
 
         # Retrieve similar documents from the vector store
-        retrieved_docs = self.vector_store.similarity_search(query,k=50, filter=filter)
+        retrieved_docs = self.vector_store.similarity_search_with_score(query,k=50, filter=filter)
 
         return retrieved_docs
 
@@ -144,10 +144,14 @@ class Rag:
         logger.info(f"manifesto → {manifesto_docs[:5]}")
 
         # Create the prompt
-        speech_content = "\n\n".join(doc.page_content for doc in speech_docs)
-        manifesto_content = "\n\n".join(doc.page_content for doc in manifesto_docs)
+        speech_content = "\n\n".join(doc.page_content for doc, _ in speech_docs)
+        #manifesto_content = "\n\n".join(doc.page_content for doc,_ in manifesto_docs)
 
-        label = analyze_tone_differences(manifesto_content, speech_content, self.model)
+        avg_score_speech = sum(score for _, score in speech_docs) / len(speech_docs)
+        avg_score_manifesto = sum(score for _, score in manifesto_docs) / len(manifesto_docs)
+
+        #more meaningful computation
+        score = avg_score_speech + avg_score_manifesto
 
         prompt = self.prompt_template.invoke(
             {"context": speech_content, "question": query}
@@ -155,7 +159,7 @@ class Rag:
 
         # Get the answer from the language model
         answer = self.model.invoke(prompt)
-        return (answer.content, label)
+        return (answer.content, score)
 
     def shutdown(self):
         """Clean up resources if needed."""
