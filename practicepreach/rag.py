@@ -143,15 +143,19 @@ class Rag:
         logger.info(f"speech → {speech_docs[:5]}")
         logger.info(f"manifesto → {manifesto_docs[:5]}")
 
-        # Create the prompt
-        speech_content = "\n\n".join(doc.page_content for doc, _ in speech_docs)
-        #manifesto_content = "\n\n".join(doc.page_content for doc,_ in manifesto_docs)
-
+        # Score
+        # Similarity of how well manifesto vs speech captures the query
         avg_score_speech = sum(score for _, score in speech_docs) / len(speech_docs)
         avg_score_manifesto = sum(score for _, score in manifesto_docs) / len(manifesto_docs)
 
-        #more meaningful computation
-        score = avg_score_speech + avg_score_manifesto
+        sim_speech = 1- avg_score_speech
+        sim_mani = 1 - avg_score_manifesto
+        diff = abs(sim_speech - sim_mani)
+        align_score = 1 - diff
+
+
+        # Summary
+        speech_content = "\n\n".join(doc.page_content for doc, _ in speech_docs)
 
         prompt = self.prompt_template.invoke(
             {"context": speech_content, "question": query}
@@ -159,7 +163,7 @@ class Rag:
 
         # Get the answer from the language model
         answer = self.model.invoke(prompt)
-        return (answer.content, score)
+        return (answer.content, align_score)
 
     def shutdown(self):
         """Clean up resources if needed."""
