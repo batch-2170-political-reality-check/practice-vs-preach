@@ -146,21 +146,23 @@ class Rag:
     def answer(self, query, party, start_date:datetime, end_date:datetime, prompt_template=None):
         """Answer a query using the vector store and the language model."""
 
+        logger.debug(f"retrieve_topic_chunks - speech ({party})")
         speech_docs = self.retrieve_topic_chunks(query, party, start_date,
                                                  end_date, doctype='speech')
+        speech_docs_len = len(speech_docs)
+        logger.debug(f"speech → {speech_docs_len}")
+
+        logger.debug(f"retrieve_topic_chunks - manifesto ({party})")
         manifesto_docs = self.retrieve_topic_chunks(query, party,
                                                     convert_to_wp_start(start_date),
                                                     convert_to_wp_start(end_date),
                                                     doctype='manifesto')
-        logger.info(f"speech → {speech_docs[:5]}")
-        logger.info(f"manifesto → {manifesto_docs[:5]}")
+        manifesto_docs_len = len(manifesto_docs)
+        logger.debug(f"manifesto → {manifesto_docs_len}")
 
         # Score
         # Cosine Similarity between speech and query and manifesto and query
         # TODO: Decide if we want to use it in combination with Cosine Similarity between speech and manifesto
-
-        speech_docs_len = len(speech_docs)
-        manifesto_docs_len = len(manifesto_docs)
 
         avg_score_speech = sum(score for _, score in speech_docs) / speech_docs_len \
                 if speech_docs_len else 0
@@ -179,12 +181,15 @@ class Rag:
         # Summary
         speech_content = "\n\n".join(doc.page_content for doc, _ in speech_docs)
 
+        logger.debug(f"prompt_template.invoke")
         prompt = self.prompt_template.invoke(
             {"context": speech_content, "question": query}
         )
 
         # Get the answer from the language model
+        logger.debug(f"model.invoke")
         answer = self.model.invoke(prompt)
+        logger.debug(f"return")
         return (answer.content, cos)
 
     def shutdown(self):

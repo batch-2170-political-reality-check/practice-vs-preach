@@ -11,7 +11,7 @@ load_dotenv()
 
 # Variables required for the Rag
 
-require_env("DATA_CSV", "GS_URI", "GOOGLE_API_KEY")
+require_env("DATA_CSV", "GOOGLE_API_KEY")
 
 # Chroma configuration - either embedded or external
 PERSIST_DIR = os.environ.get("PERSIST_DIR")  # For embedded Chroma
@@ -21,6 +21,7 @@ CHROMADB_PORT = os.environ.get("CHROMADB_PORT", "8000")  # Default port
 # Other required vars
 DATA_CSV = os.environ.get("DATA_CSV")
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY") # langchain_google_genai
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
 
 # Determine mode
 USE_EXTERNAL_CHROMA = bool(CHROMADB_HOST)

@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from practicepreach import constants
+from practicepreach.params import LOG_LEVEL
 from practicepreach.rag import Rag
 
 ALIGNEMENT_LABELS = [
@@ -15,7 +16,7 @@ ALIGNEMENT_LABELS = [
 ]
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=getattr(logging, LOG_LEVEL, logging.INFO),
     format="%(asctime)s | %(name)s | %(levelname)s | %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )

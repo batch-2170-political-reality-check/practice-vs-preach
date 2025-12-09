@@ -7,14 +7,14 @@ locals {
   env_vars = {
     PERSIST_DIR = "data/chroma_store"
     DATA_CSV    = "data/speeches-wahlperiode-21-small.csv"
-    GS_URI      = "gs://batch-2170-political-reality-check"
+    LOG_LEVEL   = "INFO"
   }
 
   env_vars_dev = {
     DATA_CSV      = local.env_vars.DATA_CSV
-    GS_URI        = local.env_vars.GS_URI
     CHROMADB_HOST = google_compute_instance.chromadb.network_interface[0].network_ip
     CHROMADB_PORT = "8000"
+    LOG_LEVEL     = "DEBUG"
   }
 }
 
