@@ -10,13 +10,6 @@ from practicepreach import constants
 from practicepreach.params import LOG_LEVEL
 from practicepreach.rag import Rag
 
-ALIGNEMENT_LABELS = [
-    'Does not align well with manifesto',
-    'Aligns partly with manifesto',
-    'Aligns mostly with manifesto',
-    'Aligns well with manifesto',
-]
-
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL, logging.INFO),
     format="%(asctime)s | %(name)s | %(levelname)s | %(message)s",
