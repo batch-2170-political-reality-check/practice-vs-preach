@@ -5,14 +5,13 @@ locals {
   rag_image     = "${local.registry_host}/${local.image_repo}/${local.image_name}"
 
   env_vars = {
-    LOG_LEVEL   = "INFO"
-    PERSIST_DIR = "data/chroma_store"
-    DATA_CSV    = "data/speeches-wahlperiode-21-small.csv"
+    LOG_LEVEL     = "INFO"
+    CHROMADB_HOST = google_compute_instance.chromadb.network_interface[0].network_ip
+    CHROMADB_PORT = "8000"
   }
 
   env_vars_dev = {
     LOG_LEVEL     = "DEBUG"
-    DATA_CSV      = local.env_vars.DATA_CSV
     CHROMADB_HOST = google_compute_instance.chromadb.network_interface[0].network_ip
     CHROMADB_PORT = "8000"
   }
@@ -46,6 +45,7 @@ resource "google_artifact_registry_repository" "project-registry" {
   depends_on = [google_project_service.artifact_registry]
 }
 
+# Prod RAG service
 resource "google_cloud_run_v2_service" "rag_service" {
   name     = "rag-service"
   location = local.location
@@ -87,7 +87,11 @@ resource "google_cloud_run_v2_service" "rag_service" {
       }
     }
 
-    # Service account (recommended for security)
+    vpc_access {
+      connector = google_vpc_access_connector.connector.id
+      egress    = "PRIVATE_RANGES_ONLY"
+    }
+
     service_account = google_service_account.project_sa.email
   }
 
@@ -101,7 +105,7 @@ resource "google_cloud_run_v2_service" "rag_service" {
     ignore_changes = [template, traffic]
   }
 
-  depends_on = [google_project_service.cloud_run]
+  depends_on = [google_project_service.cloud_run, google_vpc_access_connector.connector]
 }
 
 # Service publicly accessible (i.e. anyone can curl)
@@ -113,7 +117,7 @@ resource "google_cloud_run_v2_service_iam_member" "public_access" {
   member   = "allUsers"
 }
 
-# Dev RAG service with external ChromaDB
+# Dev RAG service
 resource "google_cloud_run_v2_service" "rag_service_dev" {
   name     = "rag-service-dev"
   location = local.location
@@ -215,10 +219,10 @@ resource "google_secret_manager_secret_iam_member" "cloud_run_secret_access" {
 # Output the service URLs
 output "rag_service_url" {
   value       = google_cloud_run_v2_service.rag_service.uri
-  description = "URL of the deployed RAG service (embedded Chroma)"
+  description = "URL of the deployed RAG prod service"
 }
 
 output "rag_service_dev_url" {
   value       = google_cloud_run_v2_service.rag_service_dev.uri
-  description = "URL of the deployed RAG dev service (external ChromaDB)"
+  description = "URL of the deployed RAG dev service"
 }
