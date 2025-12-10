@@ -2,6 +2,7 @@ import requests, os, time, csv, sys
 import BundestagsAPy
 import pandas as pd
 import xmltodict
+import xml.etree.ElementTree as ET
 import time
 from practicepreach.rag import Rag
 
@@ -13,6 +14,36 @@ SPEECHES_XML_DIR = os.environ.get("SPEECHES_XML_DIR")
 
 BASE = "https://search.dip.bundestag.de/api/v1"
 
+def process_bundestag_xml(url: str, df: pd.DataFrame):
+    """
+    Process speeches xml file and store data to pandas DataFrame
+    """
+    tree = ET.parse(url)
+    root = tree.getroot()
+
+    a_date = root.attrib['sitzung-datum']
+
+    # path: <dbtplenarprotokoll>/<sitzungsverlauf>/<tagesordnungspunkt>/<rede>
+    for punkt in root.findall("./sitzungsverlauf/tagesordnungspunkt"):
+        for rede in punkt.findall("./rede"):
+            rede_id = rede.get("id")  # e.g. "ID214400100"
+
+            fraktion = rede.find(".//p[@klasse='redner']//fraktion")
+            if fraktion is not None:
+                main_text = rede.findall(".//p[@klasse='J_1']")[0].text
+                
+                df.loc[len(df)] = {'type':'speech', \
+                        'date': a_date, \
+                        'id':rede_id, \
+                        'party':fraktion.text, \
+                        'text':main_text}
+
+                for node in rede.findall(".//p[@klasse='J']"):
+                    df.loc[len(df)] = {'type':'speech', \
+                          'date': a_date, \
+                          'id':rede_id, \
+                          'party':fraktion.text, \
+                          'text':node.text}
 
 def fetch_and_parse_xml(url: str, store_it_to: str = None) -> dict:
     """
@@ -169,7 +200,7 @@ def get_speeches(speeches_urls: str, speeches_csv: str):
     df.to_csv(speeches_csv)
 
 if __name__ == "__main__":
-    if len(sys.argv) > 2 and os.path.isfile(sys.argv[2]):
+    if len(sys.argv) > 2 and (os.path.isfile(sys.argv[2]) or os.path.isdir(sys.argv[2])):
         if sys.argv[1] == "speeches":
             print("Getting speeches...")
             get_speeches(sys.argv[2], sys.argv[3])
@@ -183,3 +214,16 @@ if __name__ == "__main__":
             num_of_chunks = rag.add_to_vector_store(data_source=file_to_process)
             print(f"Embedded {num_of_chunks} chunks into the vector store.")
             print(f'{rag.get_num_of_vectors()} vectors currently in the vector store.')
+        elif sys.argv[1] == "xml":
+            dir_to_process = sys.argv[2]
+            save_to_cvs = sys.argv[3]
+
+            entries = os.listdir(dir_to_process)
+            files = [os.path.join(dir_to_process, f) \
+                    for f in entries if os.path.isfile(os.path.join(dir_to_process, f))]
+            df = pd.DataFrame(columns = ['date','id','party','text'])
+            for file in files:
+                print(f'Processing {file}')
+                process_bundestag_xml(file, df)
+            df.to_csv(save_to_cvs)
+

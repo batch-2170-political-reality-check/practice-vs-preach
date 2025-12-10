@@ -15,6 +15,7 @@ from langchain_core.documents import Document
 
 from datetime import datetime
 
+from practicepreach.constants import *
 from practicepreach.params import *
 from practicepreach.alignment import analyze_tone_differences
 from practicepreach.wahlperiode_converter import *
@@ -29,7 +30,7 @@ from practicepreach.cosine_sim import *
 logger = logging.getLogger(__name__)
 
 class Rag:
-    def __init__(self, populate_vector_store: bool = True):
+    def __init__(self, populate_vector_store: bool = False):
         # Debugging
         if GOOGLE_API_KEY:
             masked_api_key = '*' * len(GOOGLE_API_KEY)
@@ -160,10 +161,9 @@ class Rag:
         sim_mani = 1 - avg_score_manifesto
         diff = abs(sim_speech - sim_mani)
         align_score = 1 - diff
-
         # Cosine Similarity between speech and manifesto
-        #cos = content_alignment_from_store(self.vector_store,speech_docs,manifesto_docs )
-        cos = 0
+        cos = content_alignment_from_store(self.vector_store,speech_docs,manifesto_docs ) \
+                if speech_docs_len and avg_score_manifesto else NOT_ENOUGHT_DATA_FOR_SCORE
 
         # Summary
         speech_content = "\n\n".join(doc.page_content for doc, _ in speech_docs)

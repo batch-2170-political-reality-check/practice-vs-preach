@@ -4,6 +4,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
+from datetime import datetime, date
+
 from practicepreach import constants
 from practicepreach.rag import Rag
 
@@ -27,7 +29,7 @@ async def lifespan(app: FastAPI):
     logger.info("Starting up...")
     # e.g. connect to DB, load ML model, init client, create resources
 
-    app.state.rag = Rag()
+    app.state.rag = Rag(populate_vector_store = True)
 
     logger.info("Starting is complete.")
     yield
@@ -76,7 +78,5 @@ def get_summary(topic: str, start_date: str, end_date: str):
 
     return summaries
 
-
-from datetime import datetime, date
 def _str2date(s: str) -> datetime:
     return datetime.strptime(s, "%Y-%m-%d").date()
