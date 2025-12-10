@@ -175,9 +175,10 @@ class Rag:
         diff = abs(sim_speech - sim_mani)
         align_score = 1 - diff
         # Cosine Similarity between speech and manifesto
-        cos = content_alignment_from_store(self.vector_store,speech_docs,manifesto_docs ) \
-                if speech_docs_len and avg_score_manifesto else NOT_ENOUGHT_DATA_FOR_SCORE
-        cos = f"{cos:.2%}"
+        cos = NOT_ENOUGHT_DATA_FOR_SCORE # default
+        if speech_docs_len and avg_score_manifesto:
+            cos = content_alignment_from_store(self.vector_store,speech_docs,manifesto_docs )
+            cos = f"{cos:.2%}"
 
         # Summary
         speech_content = "\n\n".join(doc.page_content for doc, _ in speech_docs)
