@@ -64,6 +64,26 @@ pratice-vc-preach/
 
 ## Usage
 
+### Development
+
+When developing locally:
+
+```
+cp .env.sample .env  # edit .env
+uv run uvicorn practicepreach.fast:app --host 0.0.0.0
+```
+
+Test packaging:
+
+```
+make docker-build
+make docker-run
+curl -v '127.0.0.1:8000/summaries?topic=environment&start_date=2025-07-21&end_date=2025-12-01'
+```
+
+**Local development uses an embedded Chroma vector store**. If it's empty, the
+application will load CSVs (see .env).
+
 ### Deployment
 
 To deploy the `rag` service to Cloud Run:
@@ -75,3 +95,9 @@ To deploy the `rag` service to Cloud Run:
 1. Build, push the image and update deployment with:
 
       make docker-deploy
+
+**The deployed app uses an external Chroma DB** that is populated on startup.
+
+### Data processing
+
+**TODO**

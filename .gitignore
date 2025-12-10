@@ -16,5 +16,3 @@ tf.plan
 
 data/chroma_store/
 data/xmls/
-
-# FIXME cleanup repo from garbage files __pycache__ or .DS_Store

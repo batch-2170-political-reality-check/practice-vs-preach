@@ -1,4 +1,6 @@
 import logging
+import asyncio
+from datetime import datetime, date
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,17 +9,11 @@ from contextlib import asynccontextmanager
 from datetime import datetime, date
 
 from practicepreach import constants
+from practicepreach.params import LOG_LEVEL
 from practicepreach.rag import Rag
 
-ALIGNEMENT_LABELS = [
-    'Does not align well with manifesto',
-    'Aligns partly with manifesto',
-    'Aligns mostly with manifesto',
-    'Aligns well with manifesto',
-]
-
 logging.basicConfig(
-    level=logging.INFO,
+    level=getattr(logging, LOG_LEVEL, logging.INFO),
     format="%(asctime)s | %(name)s | %(levelname)s | %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
@@ -61,7 +57,7 @@ def get_parameters():
     }
 
 @app.get("/summaries")
-def get_summary(topic: str, start_date: str, end_date: str):
+async def get_summaries(topic: str, start_date: str, end_date: str):
     dt_start = _str2date(start_date)
     dt_end = _str2date(end_date)
 
@@ -70,13 +66,35 @@ def get_summary(topic: str, start_date: str, end_date: str):
 
     rag: Rag = app.state.rag
 
-    summaries = {} # party → {'summary':"blbal", 'label':"Aligns…"}
-    for party in constants.PARTIES_LIST:
-        (summary, label) = rag.answer(query, party, dt_start, dt_end)
+    # Process all parties in parallel
+    async def process_party(party: str):
+        """Process a single party (runs in thread pool)."""
+        loop = asyncio.get_event_loop()
+        summary, label = await loop.run_in_executor(
+            None,
+            rag.answer,
+            query, party, dt_start, dt_end
+        )
+        return party, summary, label
+
+    # Run all parties concurrently
+    logger.info(f"Processing {len(constants.PARTIES_LIST)} parties in parallel")
+    results = await asyncio.gather(
+        *[process_party(party) for party in constants.PARTIES_LIST],
+        return_exceptions=True
+    )
+
+    # Collect results
+    summaries = {}
+    for result in results:
+        if isinstance(result, Exception):
+            logger.error(f"Party processing failed: {result}")
+            continue
+        party, summary, label = result
         if summary is not None and label is not None:
             summaries[party] = {'summary': summary, 'label': label}
 
     return summaries
 
-def _str2date(s: str) -> datetime:
+def _str2date(s: str) -> date:
     return datetime.strptime(s, "%Y-%m-%d").date()
