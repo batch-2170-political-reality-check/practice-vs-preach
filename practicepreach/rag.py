@@ -31,7 +31,7 @@ from practicepreach.cosine_sim import *
 logger = logging.getLogger(__name__)
 
 class Rag:
-    def __init__(self, populate_vector_store: bool = False):
+    def __init__(self):
         # Debugging
         if GOOGLE_API_KEY:
             masked_api_key = '*' * len(GOOGLE_API_KEY)
@@ -72,7 +72,7 @@ class Rag:
             )
 
             num_of_stored = self.vector_store._collection.count()
-            if num_of_stored == 0 and populate_vector_store:
+            if num_of_stored == 0:
                 num_of_chunks_speech = self.add_to_vector_store(DATA_CSV)
                 logger.info(f"Embedded {num_of_chunks_speech} chunks into the vector store.")
 

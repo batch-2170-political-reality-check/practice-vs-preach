@@ -31,7 +31,7 @@ def process_bundestag_xml(url: str, df: pd.DataFrame):
             fraktion = rede.find(".//p[@klasse='redner']//fraktion")
             if fraktion is not None:
                 main_text = rede.findall(".//p[@klasse='J_1']")[0].text
-                
+
                 df.loc[len(df)] = {'type':'speech', \
                         'date': a_date, \
                         'id':rede_id, \
@@ -208,7 +208,7 @@ if __name__ == "__main__":
             file_to_process = sys.argv[2]
             print(f"Vectorizing {file_to_process}...")
             time.sleep(2)
-            rag = Rag(populate_vector_store=False)
+            rag = Rag()
             print(f'{rag.get_num_of_vectors()} vectors currently in the vector store.')
             time.sleep(2)
             num_of_chunks = rag.add_to_vector_store(data_source=file_to_process)
@@ -226,4 +226,3 @@ if __name__ == "__main__":
                 print(f'Processing {file}')
                 process_bundestag_xml(file, df)
             df.to_csv(save_to_cvs)
-

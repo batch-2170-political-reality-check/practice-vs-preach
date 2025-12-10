@@ -25,7 +25,7 @@ async def lifespan(app: FastAPI):
     logger.info("Starting up...")
     # e.g. connect to DB, load ML model, init client, create resources
 
-    app.state.rag = Rag(populate_vector_store = True)
+    app.state.rag = Rag()
 
     logger.info("Starting is complete.")
     yield
