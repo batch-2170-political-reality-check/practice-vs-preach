@@ -3,7 +3,7 @@ default:
 
 #################### DOCKER #######################
 BUILDX ?= DOCKER_BUILDKIT=1
-TAG ?= $(shell date +%Y%m%d-%H%M%S)
+TAG := $(shell date +%Y%m%d-%H%M%S)
 ifeq ($(BUILD_FORCE),1)
 BUILD_FORCE = --no-cache --progress=plain
 else
@@ -37,8 +37,11 @@ docker-build-prod:
 docker-push-prod:
 	docker push $$GCP_REGION-docker.pkg.dev/$$GCP_PROJECT/$$GCP_PROJECT/$$GAR_IMAGE:$(TAG)
 
+# When the Cloud Run service definition changed.
+deploy-terraform: docker-build-prod docker-push-prod
+	cd terraform && terraform apply -var="rag_image_tag=$(TAG)" -auto-approve
+
 deploy: docker-build-prod docker-push-prod
-	#cd terraform && terraform apply -var="rag_image_tag=$(TAG)" -auto-approve
 	gcloud run deploy rag-service \
     --image=$$GCP_REGION-docker.pkg.dev/$$GCP_PROJECT/$$GCP_PROJECT/$$GAR_IMAGE:$(TAG) \
     --region=europe-west10 \
