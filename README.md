@@ -1,103 +1,344 @@
-# Practice What You Preach: A Political Reality Check
+# Practice vs Preach: Political Alignment Analysis System
 
-Phase 1 — Summary & Alignment
-Generate a topic-level summary of what each party talks about in parliamentary speeches.
-Then calculate a Similarity Score showing how closely these speeches align with the party’s official manifesto positions. Goal: Answer the question “What does the party actually talk about — and how close is that to what they promised?”
+A RAG-based system that compares German political parties' parliamentary speeches with their election manifestos to measure alignment and identify gaps between promises and actions.
 
-Depending on complexity of Phase 1, further ideas (not decided on):
+## Overview
 
-Phase 2 — Subtopics & Tonality
-Break broad political topics into data-driven subtopics using e.g. clustering (e.g., “CO₂ pricing,” “family reunification,” “hospital financing”)
-For each subtopic, classify the tonality/stance expressed in speeches (supportive, critical, conditional, etc.).
-Goal: Reveal how parties talk about an issue — not just that they talk about it.
+This system answers: "What does each party actually talk about in parliament, and how well does it align with what they promised in their manifesto?"
 
-Phase 3 — Quotes & Context
-Provide short, contextual speech excerpts that illustrate why a subtopic was assigned a particular tonality.
-Each quote includes speaker name, party, date, and a link to the full speech.
-Goal: Give users transparent evidence behind the classifications.
+### Key Features
 
+- **Dual Data Sources**: Processes both parliamentary speeches (from Bundestag API) and election manifestos
+- **Semantic Search**: Vector-based retrieval using Google Generative AI embeddings
+- **Alignment Scoring**: Combines cosine similarity
+- **Topic-Based Analysis**: Analyzes alignment across 10 political topics
+- **RESTful API**: FastAPI service for querying summaries and alignment scores
 
-## Project Status
+## Architecture
 
-**Status**: MVP in progress for Phase 1
-
-**Timeline**: 2 weeks
-
+```
+┌─────────────────┐     ┌─────────────────┐
+│ Bundestag API   │     │ Manifesto Files │
+│  (Speeches)     │     │   (.txt, .json) │
+└────────┬────────┘     └────────┬────────┘
+         │                       │
+         ▼                       ▼
+    ┌─────────────────────────────────┐
+    │   Data Processing Pipeline      │
+    │  - CSV Conversion                │
+    │  - Sentence-Aware Chunking       │
+    │  - Metadata Extraction           │
+    └──────────────┬──────────────────┘
+                   │
+                   ▼
+    ┌─────────────────────────────────┐
+    │      Vector Store (ChromaDB)    │
+    │  - Google Embeddings            │
+    │  - Metadata Filtering           │
+    └──────────────┬──────────────────┘
+                   │
+                   ▼
+    ┌─────────────────────────────────┐
+    │      RAG Query System           │
+    │  - Dual Retrieval (Speech/Manifesto)│
+    │  - Alignment Scoring             │
+    │  - Summary Generation           │
+    └──────────────┬──────────────────┘
+                   │
+                   ▼
+    ┌─────────────────────────────────┐
+    │      FastAPI Service            │
+    │  - /summaries endpoint          │
+    │  - /parameters endpoint         │
+    └─────────────────────────────────┘
+```
 
 ## Tech Stack
 
-- [Technology 1]
-- [Technology 2]
-- [Technology 3]
-- [etc.]
+- **Python 3.12+**
+- **LangChain**: Document processing, LLM orchestration, vector store integration
+- **ChromaDB**: Persistent vector database
+- **Google Generative AI**: 
+  - `text-embedding-004` for embeddings
+  - `gemini-2.5-flash-lite` for text analysis
+- **FastAPI**: REST API framework
+- **NLTK**: Sentence tokenization
+- **Pandas**: Data processing
+- **Terraform**: Infrastructure as code (GCP Cloud Run)
 
 ## Project Structure
 
-
-**data**: downloaded and renamed manifestos from 2025
-
-**Fetch_PlenaryMinutes**: API call to fetch speeches. Can be adjusted to election period of choice.
-
-**poc_manifesto_summary**: First proof of concept by applying challenge to manifesto texts.
-
-**requirements.txt**: requirements adapted from RAG challenge
-
-**dbtplenarprotokoll_kommentiert**: schema specification for https://www.bundestag.de/services/opendata that defines how all parliamentary debates and their components (who spoke, what they said, reactions, votes, etc.) are structured in machine-readable XML format for the German Bundestag's digital archives.
-(for fetching the plenary minutes I have used the API, not the structured xml)
-
 ```
-pratice-vc-preach/
-├── data
-│   └── ...
-├── notebooks
-│   ├── Fetch_PlenaryMinutes.ipynb
-│   └── poc_manifesto_summary.ipynb
-├── pitchdeck
-│   └── practice-vs-preach-pitch-deck.pdf
-├── README.md
-├── requirements.txt
-└── research
-│   └── ...
-└── resources
-    └── dbtplenarprotokoll_kommentiert.pdf
+practice-vs-preach/
+├── practicepreach/          # Main application package
+│   ├── rag.py              # RAG system core
+│   ├── alignment.py        # LLM-based alignment analysis
+│   ├── fast.py             # FastAPI application
+│   ├── tools.py            # Bundestag API integration
+│   ├── generate_manifesto_dataframe.py  # Manifesto processing
+│   ├── constants.py        # Political topics, wahlperiode dates
+│   ├── cosine_sim.py       # Similarity calculations
+│   └── params.py           # Configuration management
+├── data/                    # Data storage
+│   ├── speeches-wahlperiode-*.csv  # Parliamentary speeches
+│   └── manifestos.csv      # Processed manifestos
+├── notebooks/               # Jupyter notebooks for exploration
+├── terraform/               # Infrastructure configuration
+└── requirements.txt         # Python dependencies
+```
+
+## Installation
+
+### Prerequisites
+
+- Python 3.12+
+- Google Cloud account with Generative AI API access
+- Environment variables configured (see Configuration)
+
+### Setup
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd practice-vs-preach
+```
+
+2. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+3. Configure environment variables (see Configuration section)
+
+4. Download NLTK data:
+```python
+import nltk
+nltk.download('punkt')
+```
+
+## Configuration
+
+Set the following environment variables:
+
+```bash
+# Google AI API
+GOOGLE_API_KEY=your_google_api_key
+
+# Data paths
+SPEECHES_CSV=data/speeches-wahlperiode-21.csv
+PERSIST_DIR=data/chroma_store
+
+# Optional
+SPEECHES_XML_DIR=data/xml  # For storing raw XML files
 ```
 
 ## Usage
 
-### Development
+### Running the API Server
 
-When developing locally:
+```bash
+# Development
+uvicorn practicepreach.fast:app --reload
 
-```
-cp .env.sample .env  # edit .env
-uv run uvicorn practicepreach.fast:app --host 0.0.0.0
-```
-
-Test packaging:
-
-```
-make docker-build
-make docker-run
-curl -v '127.0.0.1:8000/summaries?topic=environment&start_date=2025-07-21&end_date=2025-12-01'
+# Production (via Docker)
+make docker-deploy
 ```
 
-**Local development uses an embedded Chroma vector store**. If it's empty, the
-application will load CSVs (see .env).
+### API Endpoints
 
-### Deployment
+#### `GET /`
+Health check endpoint.
 
-To deploy the `rag` service to Cloud Run:
+#### `GET /parameters`
+Returns available political topics and wahlperiode date ranges.
 
-1. Configure the docker registry authentication:
+**Response:**
+```json
+{
+  "political_topics": {
+    "economy": "Economy & Growth / Germany as an Industrial Nation",
+    "environment": "Climate, Environment & Energy",
+    ...
+  },
+  "bundestag_wahlperiode": {
+    "20": ["2021-10-26", "2025-03-22"],
+    ...
+  }
+}
+```
 
-    gcloud auth configure-docker europe-west10-docker.pkg.dev
+#### `GET /summaries`
+Query summaries and alignment scores for all parties.
 
-1. Build, push the image and update deployment with:
+**Parameters:**
+- `topic` (str): Political topic key (e.g., "economy", "environment")
+- `start_date` (str): Start date in `YYYY-MM-DD` format
+- `end_date` (str): End date in `YYYY-MM-DD` format
 
-      make docker-deploy
+**Example:**
+```bash
+GET /summaries?topic=environment&start_date=2021-10-26&end_date=2023-12-31
+```
 
-**The deployed app uses an external Chroma DB** that is populated on startup.
+**Response:**
+```json
+{
+  "AfD": {
+    "summary": "Party's stance on climate policy...",
+    "label": "Aligns mostly with manifesto"
+  },
+  "SPD": {
+    "summary": "...",
+    "label": "Aligns well with manifesto"
+  },
+  ...
+}
+```
 
-### Data processing
+### Programmatic Usage
 
-**TODO**
+```python
+from practicepreach.rag import Rag
+from datetime import datetime
+
+# Initialize RAG system
+rag = Rag(populate_vector_store=True)
+
+# Query for a specific party and topic
+query = "What does the party say about Climate, Environment & Energy"
+party = "SPD"
+start_date = datetime(2021, 10, 26)
+end_date = datetime(2023, 12, 31)
+
+summary, alignment_score = rag.answer(query, party, start_date, end_date)
+```
+
+## Data Processing
+
+### Processing Manifestos
+
+```python
+from practicepreach.generate_manifesto_dataframe import generate_manifesto_dataframe
+
+# Generate and save manifesto CSV
+df = generate_manifesto_dataframe()
+# CSV automatically saved to data/manifestos.csv
+```
+
+The script:
+- Reads `.txt` files from `german_manifestos/` folder
+- Extracts party ID from filename (e.g., `41113_202109_text.txt` → party ID `41113`)
+- Maps party ID to party name via `parties_summary.csv`
+- Extracts year and maps to wahlperiode start date
+- Chunks text by sentences (never cutting sentences)
+- Outputs CSV with columns: `type`, `date`, `id`, `party`, `text`
+
+### Fetching Parliamentary Speeches
+
+```python
+from practicepreach.tools import get_speeches
+
+# Fetch speeches from Bundestag API
+get_speeches()
+# Saves to CSV specified in SPEECHES_CSV environment variable
+```
+
+## How It Works
+
+### 1. Data Ingestion
+- **Speeches**: Fetched from Bundestag API, processed into CSV with metadata
+- **Manifestos**: Processed from text files, chunked by sentences, stored in CSV
+
+### 2. Vector Store Population
+- Documents are loaded via `CSVLoader` with metadata columns
+- Text is chunked using `NLTKTextSplitter` (500 chars, 200 overlap)
+- Chunks are embedded using Google's `text-embedding-004`
+- Embeddings stored in ChromaDB with metadata (party, date, type, id)
+
+### 3. Query Processing
+- User provides: topic, date range
+- System retrieves relevant chunks from both:
+  - **Speeches**: Filtered by party, date range, type='speech'
+  - **Manifestos**: Filtered by party, wahlperiode dates, type='manifesto'
+- Uses `similarity_search_with_score` for semantic retrieval
+
+### 4. Alignment Analysis
+- **Cosine Similarity**: Computes similarity between speech and manifesto chunks
+
+### 5. Summary Generation
+- Retrieved speech chunks are passed to Gemini with the topic query
+- LLM generates concise summary (max 7 sentences)
+- Returns summary + alignment label for each party
+
+
+## Political Topics
+
+The system analyzes 10 political topics:
+- Economy & Growth
+- Social Security & Welfare
+- Work, Labour Market & Skilled Workers
+- Education & Equal Opportunities
+- Climate, Environment & Energy
+- Migration, Integration & Citizenship
+- Housing & Urban Development
+- Digitalization & Technological Innovation
+- Internal Security, Law & Order
+- Foreign Policy, Security & Europe
+
+## Development
+
+### Running Tests
+
+```bash
+pytest
+```
+
+### Code Structure
+
+- **`rag.py`**: Core RAG system, vector store management, query processing
+- **`alignment.py`**: LLM-based tone and alignment analysis
+- **`fast.py`**: FastAPI application and endpoints
+- **`tools.py`**: Bundestag API integration, speech extraction
+- **`generate_manifesto_dataframe.py`**: Manifesto processing pipeline
+- **`constants.py`**: Domain constants (topics, wahlperiode dates, parties)
+
+## Deployment
+
+### Docker
+
+```bash
+# Build and deploy to Cloud Run
+make docker-deploy
+```
+
+### Terraform
+
+Infrastructure is managed via Terraform in the `terraform/` directory:
+- Cloud Run service configuration
+- IAM roles and permissions
+- Storage buckets
+
+## Limitations & Future Work
+
+**Current (Phase 1)**:
+- Topic-level summaries
+- Basic alignment scoring
+
+**Planned (Phase 2)**:
+- Subtopic extraction via clustering
+- Tonality classification (supportive, critical, conditional)
+
+**Future (Phase 3)**:
+- Quote extraction with context
+- Speaker attribution and links to full speeches
+
+## Acknowledgments
+
+- Bundestag Open Data API
+- Manifesto Project for German political manifestos
+- LangChain community
+- Google Generative AI
+
+## Contact
+
+[Add contact information]
