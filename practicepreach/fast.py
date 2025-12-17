@@ -6,6 +6,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
+from datetime import datetime, date
+
 from practicepreach import constants
 from practicepreach.params import LOG_LEVEL
 from practicepreach.rag import Rag
@@ -93,7 +95,6 @@ async def get_summaries(topic: str, start_date: str, end_date: str):
             summaries[party] = {'summary': summary, 'label': label}
 
     return summaries
-
 
 def _str2date(s: str) -> date:
     return datetime.strptime(s, "%Y-%m-%d").date()

@@ -13,7 +13,6 @@ def cosine(a, b):
     return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
 
 def content_alignment_from_store(vector_store, speech_docs, manifesto_docs):
-
     c_speech = get_centroid_from_store(vector_store, speech_docs)
     c_mani   = get_centroid_from_store(vector_store, manifesto_docs)
 

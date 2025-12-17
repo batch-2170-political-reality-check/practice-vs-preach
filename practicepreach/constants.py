@@ -39,3 +39,5 @@ POLITICAL_TOPICS = {
 }
 
 PARTIES_LIST = ["AfD", "SPD", "CDU/CSU", "BÜNDNIS 90/DIE GRÜNEN", "Die Linke"]
+
+NOT_ENOUGHT_DATA_FOR_SCORE = "Not enough data"
