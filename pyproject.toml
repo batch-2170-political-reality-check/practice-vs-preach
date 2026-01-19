@@ -57,6 +57,9 @@ dependencies = [
     "yake>=0.6.0",
     "torch>=2.9.1",
     "transformers>=4.57.3",
+    "scikit-learn>=1.8.0",
+    "spacy>=3.8.11",
+    "cleantext>=1.1.4",
 ]
 
 [dependency-groups]
