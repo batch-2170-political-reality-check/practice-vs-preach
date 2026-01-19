@@ -1,4 +1,5 @@
 .env
+data/
 fetched_data/
 .DS_Store
 __MACOSX
@@ -7,12 +8,4 @@ __MACOSX
 __pycache__
 *checkpoint.ipynb
 *.ipynb_checkpoints
-
 tmp/
-german_manifestos/
-
-.terraform/
-tf.plan
-
-data/chroma_store/
-data/xmls/
