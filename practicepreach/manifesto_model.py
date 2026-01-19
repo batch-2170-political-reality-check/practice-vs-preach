@@ -2,7 +2,6 @@ import torch
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import pandas as pd
 import nltk.data
-from keyword_extractors import extract_keyword
 from practicepreach.rag import Rag
 from practicepreach.constants import BUNDESTAG_WAHLPERIODE
 
@@ -42,13 +41,12 @@ speech_content = "\n\n".join(doc.page_content for doc, _ in chunks)
 tokenizer_nltk = nltk.data.load('tokenizers/punkt/german.pickle')
 speech = tokenizer_nltk.tokenize(speech_content)
 
-# print(f'context: {speech[0:5]}')
-# print(f'target sentence: {speech[3]}')
-# print(list(predict(preprocessing(speech, 0, 5, 3)))[0])
-
+# example data
 context_window = 5
 max = 110
 start = 100
+
+
 while start <= max:
     end = min(start + context_window, max)
     for i in range(start, end + 1):
