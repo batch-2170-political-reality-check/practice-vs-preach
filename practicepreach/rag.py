@@ -91,7 +91,7 @@ class Rag:
 
         for doc in data:
             date_str = doc.metadata["date"]   # e.g. "27.11.2025"
-        doc.metadata["date"] = self.convert_date_eu_to_int(date_str)
+            doc.metadata["date"] = self.convert_date_eu_to_int(date_str)
 
         text_splitter = NLTKTextSplitter(
             chunk_size=500,
