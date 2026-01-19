@@ -15,8 +15,8 @@ import os
 print(os.getcwd())
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]  # practice-vs-preach/
-stopwords_path = PROJECT_ROOT / "data" / "stopwords_de.txt"
-stopwords2_path = PROJECT_ROOT / "data" / "stopwords_pol.txt"
+stopwords_path = PROJECT_ROOT / "practicepreach" / "stopwords_de.txt"
+stopwords2_path = PROJECT_ROOT / "practicepreach" / "stopwords_pol.txt"
 
 # Reading and merging stop words from two different sources
 with stopwords_path.open(encoding="utf-8") as f:
@@ -79,10 +79,10 @@ def extract_keyword(query,wahlperiode, rag, doctype, kw_extractor = None):
             def top_terms_for_doc(X, i, k=15):
                 row = X[i].toarray().ravel()
                 idx = row.argsort()[-k:][::-1]
-                return (parties[i], [(terms[j], float(row[j])) for j in idx if row[j] > 0])
+                return (PARTIES_LIST[i], [(terms[j], float(row[j])) for j in idx if row[j] > 0])
 
 
-            for i in range(len(parties)):
+            for i in range(len(PARTIES_LIST)):
                 party, keywords = top_terms_for_doc(X, i=i, k=15)
                 print(f"\n{party}")
                 print(keywords)
@@ -92,16 +92,14 @@ def extract_keyword(query,wahlperiode, rag, doctype, kw_extractor = None):
 
 
 # %%
+# climate_20_speech = extract_keyword('Was sagt die Partei über Migration?',20,rag,'speech', kw_extractor = kw_extractor)
 
-climate_20_speech = extract_keyword('Was sagt die Partei über Migration?',20,rag,'speech', kw_extractor = kw_extractor)
-
-for party, kw_list in climate_20_speech.items():
-    print(f"\n{party}:")
-    for kw, _ in kw_list:
-        print(f"  - {kw}")
+# for party, kw_list in climate_20_speech.items():
+#     print(f"\n{party}:")
+#     for kw, _ in kw_list:
+#         print(f"  - {kw}")
 
 climate_20_speech = extract_keyword('Was sagt die Partei über Migration?',20,rag,'speech')
-
 
 
 # %%
