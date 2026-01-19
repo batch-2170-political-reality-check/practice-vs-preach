@@ -1,7 +1,7 @@
 #%%
 from practicepreach.rag import Rag
 from datetime import date, datetime
-from practicepreach.constants import BUNDESTAG_WAHLPERIODE
+from practicepreach.constants import *
 from yake import KeywordExtractor
 from pathlib import Path
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -15,8 +15,8 @@ import os
 print(os.getcwd())
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]  # practice-vs-preach/
-stopwords_path = PROJECT_ROOT / "data" / "stopwords_de_add.txt"
-stopwords2_path = PROJECT_ROOT / "data" / "stopwords.txt"
+stopwords_path = PROJECT_ROOT / "data" / "stopwords_de.txt"
+stopwords2_path = PROJECT_ROOT / "data" / "stopwords_pol.txt"
 
 # Reading and merging stop words from two different sources
 with stopwords_path.open(encoding="utf-8") as f:
@@ -43,13 +43,12 @@ kw_extractor = KeywordExtractor(
 #%%
 
 def extract_keyword(query,wahlperiode, rag, doctype, kw_extractor = None):
-    parties = ['AFD','CDUCSU','LINKE','GRÜNEN','SPD','FDP']
     keywords = {}
     doc_list = []
     start_date = BUNDESTAG_WAHLPERIODE.get(wahlperiode)[0]
     end_date = BUNDESTAG_WAHLPERIODE.get(wahlperiode)[1]
 
-    for party in parties:
+    for party in PARTIES_LIST:
         chunks = rag.retrieve_topic_chunks(query,party,start_date,end_date,doctype)
         print(len(chunks))
         speech_content = "\n\n".join(doc.page_content for doc, _ in chunks)
