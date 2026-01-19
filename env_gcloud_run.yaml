@@ -1,0 +1,2 @@
+PERSIST_DIR: "data/chroma_store"
+GOOGLE_API_KEY: "REDACTED"
