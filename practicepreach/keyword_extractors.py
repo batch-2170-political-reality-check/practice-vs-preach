@@ -2,10 +2,9 @@
 from practicepreach.rag import Rag
 from datetime import date, datetime
 from practicepreach.constants import *
-from yake import KeywordExtractor
+#from yake import KeywordExtractor
 from pathlib import Path
 from sklearn.feature_extraction.text import TfidfVectorizer
-import numpy as np
 
 #### Data Imports
 
@@ -30,21 +29,19 @@ def import_stopwords():
     return stop_words_clean_all
 
 
-stopwords = import_stopwords()
+# stopwords = import_stopwords()
 
-rag = Rag()
+# #### YAKE Approach
 
-#### YAKE Approach
-
-# %%
-kw_extractor = KeywordExtractor(
-    lan = 'de',
-    n = 1,
-    #dedupLim = 0.1,
-    top = 10,
-    #dedupFunc = 'levs',
-    stopwords = stopwords,
-    )
+# # %%
+# kw_extractor = KeywordExtractor(
+#     lan = 'de',
+#     n = 1,
+#     #dedupLim = 0.1,
+#     top = 10,
+#     #dedupFunc = 'levs',
+#     stopwords = stopwords,
+#     )
 
 #%%
 
@@ -94,18 +91,3 @@ def extract_keyword(query,wahlperiode, rag, doctype, stopwords, kw_extractor = N
         keywords_by_party[party] = [(terms[j], float(row[j])) for j in idx if row[j] > 0]
 
     return keywords_by_party
-
-# %%
-# climate_20_speech = extract_keyword('Was sagt die Partei über Migration?',20,rag,'speech', kw_extractor = kw_extractor)
-
-# for party, kw_list in climate_20_speech.items():
-#     print(f"\n{party}:")
-#     for kw, _ in kw_list:
-#         print(f"  - {kw}")
-
-keywords = extract_keyword('Was sagt die Partei über Migration?',20,rag,'speech', stopwords)
-
-print(keywords)
-
-
-# %%
