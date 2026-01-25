@@ -60,6 +60,7 @@ dependencies = [
     "scikit-learn>=1.8.0",
     "spacy>=3.8.11",
     "cleantext>=1.1.4",
+    "matplotlib>=3.10.8",
 ]
 
 [dependency-groups]
