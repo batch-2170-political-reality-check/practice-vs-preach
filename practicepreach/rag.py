@@ -1,5 +1,9 @@
 import logging, http.client as http_client
 
+import sys
+print(sys.executable)
+
+
 import pandas as pd
 
 import time
@@ -10,7 +14,8 @@ from langchain_chroma import Chroma
 from langchain_classic import hub
 from langchain_community.document_loaders.csv_loader import CSVLoader
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+# from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import NLTKTextSplitter
 from langchain_core.documents import Document
 
@@ -22,7 +27,7 @@ from practicepreach.alignment import analyze_tone_differences
 from practicepreach.wahlperiode_converter import *
 from practicepreach.cosine_sim import *
 
-# Debug http calls.
+#Debug http calls.
 # http_client.HTTPConnection.debuglevel = 0
 # for name in ("mlflow", "urllib3", "requests"):
 #     logging.getLogger(name).setLevel(logging.DEBUG)
@@ -39,15 +44,15 @@ class Rag:
         else:
             logger.info("API Key not found in environment variables.")
 
-        self.embeddings = GoogleGenerativeAIEmbeddings(
-            model="models/text-embedding-004",
-            google_api_key=os.getenv("GOOGLE_API_KEY"),
-            credentials=None  # Explicitly disable ADC
+        self.embeddings = HuggingFaceEmbeddings(
+            model_name="intfloat/multilingual-e5-large",
+            model_kwargs={"device": "mps"},
+            encode_kwargs={"batch_size": 64},
         )
         self.model = init_chat_model("google_genai:gemini-2.5-flash-lite")
 
         self.prompt_template = ChatPromptTemplate.from_messages([
-            ("system", "You are a helpful assistant. Use the following context to answer the question. Use maximum 7 sentences. Use specific terms. Highlight important ones."),
+            ("system", "You are a helpful assistant. Use the following context to answer the question. Use maximum 7 sentences. Use specific terms. Highlight important ones. Answer in the same language as the question."),
             ("human", """Context: {context}  Question: {question}""")
         ])
 
@@ -106,7 +111,7 @@ class Rag:
         return int(dt.strftime("%Y%m%d"))
 
 
-    def embed_and_store(self, doc, text_splitter, batch_size=200):
+    def embed_and_store(self, doc, text_splitter, batch_size=500):
         """Split documents into chunks and store them in a vector store."""
         # Split the pages into chunks
         all_splits = text_splitter.split_documents(doc)
