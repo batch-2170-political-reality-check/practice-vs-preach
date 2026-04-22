@@ -152,6 +152,31 @@ uv run python bin/rebuild_store.py
 uv run uvicorn practicepreach.fast:app --reload
 ```
 
+## Frontend (Streamlit UI)
+
+The UI lives in a separate repository: [practice-preach-ui](https://github.com/batch-2170-political-reality-check/practice-preach-ui)
+
+### Setup
+
+```bash
+git clone git@github.com:batch-2170-political-reality-check/practice-preach-ui.git
+cd practice-preach-ui
+uv sync
+```
+
+### Run
+
+Make sure the FastAPI backend is running on `localhost:8000`, then:
+
+```bash
+uv run streamlit run app.py
+```
+
+### What the UI shows
+
+- **Home** — table of contents for the current session, with all agenda items listed. Items with party speeches are clickable; items without (e.g. only ministers spoke) are greyed out with a link to the plenary protocol PDF.
+- **TOP pages** — one page per agenda item with party cards showing the Kernposition and verbatim quotes. Clicking a quote copies it to the clipboard and opens the source PDF.
+
 ## API endpoints
 
 | Endpoint | Description |
