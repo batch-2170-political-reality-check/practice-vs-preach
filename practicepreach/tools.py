@@ -9,41 +9,84 @@ from practicepreach.rag import Rag
 from practicepreach.params import *
 from practicepreach.constants import *
 
-require_env("SPEECHES_XML_DIR")
 SPEECHES_XML_DIR = os.environ.get("SPEECHES_XML_DIR")
 
 BASE = "https://search.dip.bundestag.de/api/v1"
 
 def process_bundestag_xml(url: str, df: pd.DataFrame):
     """
-    Process speeches xml file and store data to pandas DataFrame
+    Process speeches xml file and store data to pandas DataFrame.
+    Stores top_id as metadata; use build_tops_lookup for title resolution.
     """
     tree = ET.parse(url)
     root = tree.getroot()
 
     a_date = root.attrib['sitzung-datum']
+    session_id = root.attrib.get('sitzung-nr', '')
 
     # path: <dbtplenarprotokoll>/<sitzungsverlauf>/<tagesordnungspunkt>/<rede>
     for punkt in root.findall("./sitzungsverlauf/tagesordnungspunkt"):
+        top_id = punkt.get("top-id", "")
+        # Unique key per TOP across sessions: e.g. "21063_Tagesordnungspunkt 20"
+        top_key = f"{session_id}_{top_id}" if session_id else top_id
+
         for rede in punkt.findall("./rede"):
-            rede_id = rede.get("id")  # e.g. "ID214400100"
+            rede_id = rede.get("id")
 
             fraktion = rede.find(".//p[@klasse='redner']//fraktion")
             if fraktion is not None:
-                main_text = rede.findall(".//p[@klasse='J_1']")[0].text
+                main_text_nodes = rede.findall(".//p[@klasse='J_1']")
+                if not main_text_nodes:
+                    continue
 
-                df.loc[len(df)] = {'type':'speech', \
-                        'date': a_date, \
-                        'id':rede_id, \
-                        'party':fraktion.text, \
-                        'text':main_text}
+                df.loc[len(df)] = {'type': 'speech',
+                        'date': a_date,
+                        'id': rede_id,
+                        'party': fraktion.text,
+                        'top_key': top_key,
+                        'text': main_text_nodes[0].text}
 
                 for node in rede.findall(".//p[@klasse='J']"):
-                    df.loc[len(df)] = {'type':'speech', \
-                          'date': a_date, \
-                          'id':rede_id, \
-                          'party':fraktion.text, \
-                          'text':node.text}
+                    df.loc[len(df)] = {'type': 'speech',
+                          'date': a_date,
+                          'id': rede_id,
+                          'party': fraktion.text,
+                          'top_key': top_key,
+                          'text': node.text}
+
+
+def build_tops_lookup(url: str) -> dict:
+    """
+    Extract TOP metadata from an XML file.
+    Returns dict: {top_key: {top_id, title, session, date}}
+    """
+    tree = ET.parse(url)
+    root = tree.getroot()
+
+    a_date = root.attrib['sitzung-datum']
+    session_id = root.attrib.get('sitzung-nr', '')
+
+    tops = {}
+    for punkt in root.findall("./sitzungsverlauf/tagesordnungspunkt"):
+        top_id = punkt.get("top-id", "")
+        if not top_id:
+            continue
+        top_key = f"{session_id}_{top_id}" if session_id else top_id
+        t_fett = punkt.find(".//p[@klasse='T_fett']")
+        t_nas = punkt.find(".//p[@klasse='T_NaS']")
+        title = t_fett.text.strip() if t_fett is not None and t_fett.text else (
+                t_nas.text.strip() if t_nas is not None and t_nas.text else "")
+        subtitle = t_nas.text.strip() if t_nas is not None and t_nas.text else ""
+        tops[top_key] = {
+            "top_key": top_key,
+            "top_id": top_id,
+            "title": title,
+            "subtitle": subtitle,
+            "session": session_id,
+            "date": a_date,
+        }
+
+    return tops
 
 def fetch_and_parse_xml(url: str, store_it_to: str = None) -> dict:
     """
@@ -168,6 +211,7 @@ def get_speaker_info(speech_dict: dict) -> dict:
     return {}
 
 def get_speeches(speeches_urls: str, speeches_csv: str):
+    require_env("SPEECHES_XML_DIR")
 
     df = pd.DataFrame({
         'type': pd.Series(dtype='object'),

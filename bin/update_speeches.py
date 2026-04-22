@@ -21,7 +21,8 @@ import pandas as pd
 import requests
 from requests.exceptions import ChunkedEncodingError, ConnectionError
 
-from practicepreach.tools import process_bundestag_xml
+import json
+from practicepreach.tools import process_bundestag_xml, build_tops_lookup
 from practicepreach.rag import Rag
 from practicepreach.params import BUNDESTAG_API_KEY
 
@@ -46,6 +47,7 @@ PARTY_NAME_MAP = {
 
 BASE_URL = "https://search.dip.bundestag.de/api/v1"
 XML_DIR = Path("data/xml_updates")
+TOPS_JSON = Path("data/tops.json")
 
 
 def fetch_session_xml_urls(since_date: str) -> list[tuple[str, str]]:
@@ -137,7 +139,7 @@ def download_xmls(session_urls: list[tuple[str, str]], xml_dir: Path) -> list[Pa
 
 def parse_xmls_to_df(xml_files: list[Path]) -> pd.DataFrame:
     """Parse XML files into DataFrame using process_bundestag_xml from tools.py."""
-    df = pd.DataFrame(columns=['type', 'date', 'id', 'party', 'text'])
+    df = pd.DataFrame(columns=['type', 'date', 'id', 'party', 'top_key', 'text'])
 
     for xml_file in xml_files:
         logger.info(f"Parsing {xml_file.name}...")
@@ -159,14 +161,16 @@ def normalize_parties(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def get_last_embedded_date(rag: Rag) -> str:
-    """Read max speech date from ChromaDB and return as YYYY-MM-DD string."""
+    """Read max speech date from ChromaDB and return the next day as YYYY-MM-DD.
+    Adding one day avoids re-embedding the last session on every restart."""
+    from datetime import timedelta
     meta = rag.vector_store._collection.get(include=["metadatas"])["metadatas"]
     dates = [m["date"] for m in meta if m.get("type") == "speech"]
     if not dates:
         return "2021-10-26"  # fallback: wahlperiode 20 start
     dt = datetime.strptime(str(max(dates)), "%Y%m%d")
     logger.info(f"Last embedded speech date in ChromaDB: {dt.date()}")
-    return dt.strftime("%Y-%m-%d")
+    return (dt + timedelta(days=1)).strftime("%Y-%m-%d")
 
 
 def run_update(rag: Rag, since_date: str = None):

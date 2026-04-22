@@ -1,4 +1,4 @@
-import logging, http.client as http_client
+import logging, http.client as http_client, os
 
 import sys
 print(sys.executable)
@@ -23,6 +23,8 @@ from datetime import datetime
 
 from practicepreach.constants import *
 from practicepreach.params import *
+
+GCS_LOCAL_CACHE = "/tmp/chroma_store_e5_3months"
 from practicepreach.alignment import analyze_tone_differences
 from practicepreach.wahlperiode_converter import *
 from practicepreach.cosine_sim import *
@@ -44,19 +46,30 @@ class Rag:
         else:
             logger.info("API Key not found in environment variables.")
 
+        device = os.environ.get("TORCH_DEVICE", "cpu")
         self.embeddings = HuggingFaceEmbeddings(
             model_name="intfloat/multilingual-e5-large",
-            model_kwargs={"device": "mps"},
-            encode_kwargs={"batch_size": 64},
+            model_kwargs={"device": device},
+            encode_kwargs={"batch_size": 8},
         )
         self.model = init_chat_model("google_genai:gemini-2.5-flash-lite")
 
         self.prompt_template = ChatPromptTemplate.from_messages([
-            ("system", "You are a helpful assistant. Use the following context to answer the question. Use maximum 7 sentences. Use specific terms. Highlight important ones. Answer in the same language as the question."),
-            ("human", """Context: {context}  Question: {question}""")
+            ("system", """Du bist ein politischer Analyst. Antworte AUSSCHLIESSLICH auf Basis des bereitgestellten Kontexts. Verwende kein Vorwissen.
+Falls der Kontext nicht ausreicht, antworte mit: 'Keine ausreichenden Daten für diese Partei und diesen Zeitraum gefunden.'
+Jeder Kontextabschnitt beginnt mit der Rede-ID in eckigen Klammern, z.B. [ID216500200].
+Formatiere deine Antwort genau so:
+**Kernposition:** [ein Satz]
+
+*"[exaktes wörtliches Zitat aus dem Kontext]"* [ID der Rede, aus der das Zitat stammt]
+*"[exaktes wörtliches Zitat aus dem Kontext]"* [ID der Rede, aus der das Zitat stammt]
+*"[exaktes wörtliches Zitat aus dem Kontext]"* [ID der Rede, aus der das Zitat stammt]
+
+Verwende so viele Zitate wie nötig, um die Kernposition zu belegen. Zitate müssen wortwörtlich aus dem Kontext stammen, jeweils gefolgt von der Rede-ID."""),
+            ("human", """Kontext: {context}  Frage: {question}""")
         ])
 
-        # Initialize Chroma - either external or embedded
+        # Initialize Chroma - either external, GCS-backed, or embedded
         if USE_EXTERNAL_CHROMA:
             logger.info(f"Connecting to external ChromaDB at {CHROMADB_HOST}:{CHROMADB_PORT}")
             chroma_client = chromadb.HttpClient(
@@ -66,6 +79,14 @@ class Rag:
             self.vector_store = Chroma(
                 client=chroma_client,
                 collection_name="political_collection",
+                embedding_function=self.embeddings,
+            )
+        elif USE_GCS_CHROMA:
+            logger.info(f"Downloading Chroma store from GCS: {GCS_CHROMA_PATH}")
+            self._download_from_gcs(GCS_CHROMA_PATH, GCS_LOCAL_CACHE)
+            self.vector_store = Chroma(
+                collection_name="political_collection",
+                persist_directory=GCS_LOCAL_CACHE,
                 embedding_function=self.embeddings,
             )
         else:
@@ -84,6 +105,50 @@ class Rag:
         num_of_stored = self.vector_store._collection.count()
         logger.info(f"Vector store has {num_of_stored} vectores.")
 
+    def _download_from_gcs(self, gcs_path: str, local_path: str):
+        """Download Chroma store from GCS to local cache directory."""
+        import subprocess
+        import shutil
+        if os.path.exists(local_path):
+            shutil.rmtree(local_path)
+        result = subprocess.run(
+            ["gsutil", "-m", "cp", "-r", gcs_path, os.path.dirname(local_path)],
+            capture_output=True, text=True
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"GCS download failed: {result.stderr}")
+        logger.info(f"Downloaded Chroma store to {local_path}")
+
+    def upload_to_gcs(self, gcs_path: str = None):
+        """Upload local Chroma cache back to GCS after an update."""
+        import subprocess
+        target = gcs_path or GCS_CHROMA_PATH
+        result = subprocess.run(
+            ["gsutil", "-m", "cp", "-r", GCS_LOCAL_CACHE, os.path.dirname(target)],
+            capture_output=True, text=True
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"GCS upload failed: {result.stderr}")
+        logger.info(f"Uploaded Chroma store to {target}")
+
+    def prune_speeches_before(self, cutoff_date: datetime) -> int:
+        """Delete all speech chunks with date < cutoff_date from the vector store.
+        Returns the number of chunks deleted.
+        """
+        cutoff_int = int(cutoff_date.strftime("%Y%m%d"))
+        collection = self.vector_store._collection
+        result = collection.get(
+            where={"$and": [{"type": {"$eq": "speech"}}, {"date": {"$lt": cutoff_int}}]},
+            include=[],
+        )
+        ids = result.get("ids", [])
+        if ids:
+            collection.delete(ids=ids)
+            logger.info(f"Pruned {len(ids)} speech chunks older than {cutoff_date.date()}")
+        else:
+            logger.info(f"No speech chunks to prune before {cutoff_date.date()}")
+        return len(ids)
+
     def get_num_of_vectors(self) -> int:
         """Get the number of vectors stored in the vector store."""
         return self.vector_store._collection.count()
@@ -91,7 +156,7 @@ class Rag:
     def add_to_vector_store(self, data_source):
         """Add new documents to the vector store from CSV file"""
         logger.info(f'Processing file: {data_source}')
-        loader = CSVLoader(file_path=data_source, metadata_columns=['date','id','party','type'])
+        loader = CSVLoader(file_path=data_source, metadata_columns=['date','id','party','type','top_key'])
         data = loader.load()
 
         for doc in data:
@@ -125,6 +190,16 @@ class Rag:
 
         return num_of_splits
 
+    def _generate_hypothesis(self, query: str) -> str:
+        """Generate a hypothetical Bundestag speech passage for HyDE retrieval."""
+        response = self.model.invoke(
+            f"Schreibe einen kurzen Ausschnitt aus einer Bundestagsrede (3-4 Sätze) auf Deutsch "
+            f"zu folgendem Thema: {query}. "
+            f"Der Text soll wie ein echter Redeausschnitt klingen."
+        )
+        logger.debug(f"HyDE hypothesis: {response.content[:100]}")
+        return response.content
+
     def retrieve_topic_chunks(
             self,
             query, party,
@@ -143,8 +218,8 @@ class Rag:
             {'type': {'$eq': doctype}},
         ]}
 
-        # Retrieve similar documents from the vector store
-        retrieved_docs = self.vector_store.similarity_search_with_score(query,k=50, filter=filter)
+        hypothesis = self._generate_hypothesis(query)
+        retrieved_docs = self.vector_store.similarity_search_with_score(hypothesis, k=50, filter=filter)
 
         return retrieved_docs
 
@@ -186,8 +261,24 @@ class Rag:
             cos = f"{cos:.2%}"
         cos = f"Alignment score: {cos}"
 
+        if not speech_docs:
+            return (None, None)
+
+        # Deduplicate chunks from the same speech to avoid repeated quotes
+        seen_ids = set()
+        unique_docs = []
+        for doc, score in speech_docs:
+            doc_id = doc.metadata.get('id')
+            if doc_id not in seen_ids:
+                seen_ids.add(doc_id)
+                unique_docs.append((doc, score))
+        speech_docs = unique_docs
+
         # Summary
-        speech_content = "\n\n".join(doc.page_content for doc, _ in speech_docs)
+        speech_content = "\n\n".join(
+            f"[{doc.metadata.get('id', 'unknown')}] {doc.page_content}"
+            for doc, _ in speech_docs
+        )
 
         logger.debug(f"prompt_template.invoke")
         prompt = self.prompt_template.invoke(
@@ -199,6 +290,46 @@ class Rag:
         answer = self.model.invoke(prompt)
         logger.debug(f"return")
         return (answer.content, cos)
+
+    def summarize_by_top_key(self, top_key: str, party: str) -> str | None:
+        """Fetch all speech chunks for a TOP + party and generate a summary."""
+        col = self.vector_store._collection
+        results = col.get(
+            where={"$and": [
+                {"type": {"$eq": "speech"}},
+                {"top_key": {"$eq": top_key}},
+                {"party": {"$eq": party}},
+            ]},
+            include=["documents", "metadatas"],
+        )
+        if not results["documents"]:
+            return None
+
+        seen_docs = set()
+        unique_chunks = []
+        for doc, meta in zip(results["documents"], results["metadatas"]):
+            if doc not in seen_docs:
+                seen_docs.add(doc)
+                unique_chunks.append((doc, meta))
+
+        context = "\n\n".join(
+            f"[{meta.get('id', 'unknown')}] {doc}"
+            for doc, meta in unique_chunks
+        )
+
+        prompt_template = ChatPromptTemplate.from_messages([
+            ("system", """Du bist ein politischer Analyst. Fasse zusammen, was die Partei zu diesem Tagesordnungspunkt gesagt hat.
+Antworte AUSSCHLIESSLICH auf Basis des bereitgestellten Kontexts. Verwende kein Vorwissen.
+Formatiere deine Antwort genau so:
+**Kernposition:** [ein Satz]
+
+*"[exaktes wörtliches Zitat aus dem Kontext]"* [ID der Rede]
+*"[exaktes wörtliches Zitat aus dem Kontext]"* [ID der Rede]"""),
+            ("human", "Kontext: {context}"),
+        ])
+        prompt = prompt_template.invoke({"context": context})
+        answer = self.model.invoke(prompt)
+        return answer.content
 
     def shutdown(self):
         """Clean up resources if needed."""

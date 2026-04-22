@@ -26,19 +26,27 @@ BUNDESTAG_WAHLPERIODE = {
 
 # https://www.notion.so/ChatGPT-generated-Topic-based-on-all-Manifestos-from-2025-2bc01f2a08b980ffa6e5c00e92d9f24b
 POLITICAL_TOPICS = {
-    "economy": "Economy & Growth / Germany as an Industrial Nation",
-    "social": "Social Security & Welfare / Pensions",
-    "work": "Work, Labour Market & Skilled Workers",
-    "education": "Education & Equal Opportunities",
-    "environment": "Climate, Environment & Energy",
-    "migration": "Migration, Integration & Citizenship",
-    "housing": "Housing & Urban Development",
-    "technology": "Digitalization & Technological Innovation",
-    "security": "Internal Security, Law & Order",
-    "foreign_policy": "Foreign Policy, Security & Europe",
+    "economy": "Wirtschaft & Wachstum",
+    "social": "Soziale Sicherheit & Wohlfahrt",
+    "work": "Arbeit & Arbeitsmarkt",
+    "education": "Bildung",
+    "environment": "Klima, Umwelt & Energie",
+    "migration": "Migration, Integration & Staatsangehörigkeit",
+    "housing": "Wohnen & Stadtentwicklung",
+    "technology": "Digitalisierung & Technologische Innovation",
+    "security": "Innere Sicherheit, Recht & Ordnung",
+    "foreign_policy": "Außenpolitik, Sicherheit & Europa",
 }
 
 PARTIES_LIST_OLD = ["AfD", "SPD", "CDU/CSU", "BÜNDNIS 90/DIE GRÜNEN", "Die Linke"]
 PARTIES_LIST = ["AFD", "SPD", "CDUCSU", "GRÜNEN", "LINKE"]
 
 NOT_ENOUGHT_DATA_FOR_SCORE = "Not enought data"
+
+PARTY_CODE = {
+    "AFD": "41953",
+    "SPD": "41320",
+    "CDUCSU": "41310",
+    "GRÜNEN": "41221",
+    "LINKE": "41223",
+}
