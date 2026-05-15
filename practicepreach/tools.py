@@ -74,9 +74,18 @@ def build_tops_lookup(url: str) -> dict:
         top_key = f"{session_id}_{top_id}" if session_id else top_id
         t_fett = punkt.find(".//p[@klasse='T_fett']")
         t_nas = punkt.find(".//p[@klasse='T_NaS']")
-        title = t_fett.text.strip() if t_fett is not None and t_fett.text else (
-                t_nas.text.strip() if t_nas is not None and t_nas.text else "")
-        subtitle = t_nas.text.strip() if t_nas is not None and t_nas.text else ""
+        if t_nas is None:
+            t_nas = punkt.find(".//p[@klasse='T_ZP_NaS']")
+
+        def _clean(node):
+            if node is None or not node.text:
+                return ""
+            import re
+            # Strip leading whitespace, dashes, and ZP labels e.g. "\t\t–\tZP 4\t"
+            return re.sub(r'^[\s\t–\-]*(?:ZP\s*\d+\s*)?', '', node.text).strip()
+
+        title = t_fett.text.strip() if t_fett is not None and t_fett.text else _clean(t_nas)
+        subtitle = _clean(t_nas)
         tops[top_key] = {
             "top_key": top_key,
             "top_id": top_id,

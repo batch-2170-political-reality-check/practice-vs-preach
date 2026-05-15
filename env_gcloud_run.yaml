@@ -1,2 +1,1 @@
-PERSIST_DIR: "data/chroma_store"
-GOOGLE_API_KEY: "REDACTED"
+GCS_CHROMA_PATH: "gs://batch-2170-political-reality-check/data/chroma_store_e5_3months"

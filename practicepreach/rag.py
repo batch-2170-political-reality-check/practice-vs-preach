@@ -106,7 +106,7 @@ Verwende so viele Zitate wie nötig, um die Kernposition zu belegen. Zitate müs
         logger.info(f"Vector store has {num_of_stored} vectores.")
 
     def _download_from_gcs(self, gcs_path: str, local_path: str):
-        """Download Chroma store from GCS to local cache directory."""
+        """Download Chroma store + tops.json from GCS to local cache directory."""
         import subprocess
         import shutil
         if os.path.exists(local_path):
@@ -119,10 +119,26 @@ Verwende so viele Zitate wie nötig, um die Kernposition zu belegen. Zitate müs
             raise RuntimeError(f"GCS download failed: {result.stderr}")
         logger.info(f"Downloaded Chroma store to {local_path}")
 
+        # Download tops.json alongside the vector store
+        gcs_base = gcs_path.rsplit('/', 1)[0]
+        from pathlib import Path
+        tops_local = Path("data/tops.json")
+        tops_local.parent.mkdir(parents=True, exist_ok=True)
+        r = subprocess.run(
+            ["gsutil", "cp", f"{gcs_base}/tops.json", str(tops_local)],
+            capture_output=True, text=True
+        )
+        if r.returncode == 0:
+            logger.info("Downloaded tops.json from GCS")
+        else:
+            logger.warning("tops.json not in GCS yet — will be created on first update")
+
     def upload_to_gcs(self, gcs_path: str = None):
-        """Upload local Chroma cache back to GCS after an update."""
+        """Upload local Chroma cache + tops.json back to GCS after an update."""
         import subprocess
+        from pathlib import Path
         target = gcs_path or GCS_CHROMA_PATH
+
         result = subprocess.run(
             ["gsutil", "-m", "cp", "-r", GCS_LOCAL_CACHE, os.path.dirname(target)],
             capture_output=True, text=True
@@ -130,6 +146,18 @@ Verwende so viele Zitate wie nötig, um die Kernposition zu belegen. Zitate müs
         if result.returncode != 0:
             raise RuntimeError(f"GCS upload failed: {result.stderr}")
         logger.info(f"Uploaded Chroma store to {target}")
+
+        tops_local = Path("data/tops.json")
+        if tops_local.exists():
+            gcs_base = target.rsplit('/', 1)[0]
+            r = subprocess.run(
+                ["gsutil", "cp", str(tops_local), f"{gcs_base}/tops.json"],
+                capture_output=True, text=True
+            )
+            if r.returncode == 0:
+                logger.info(f"Uploaded tops.json to {gcs_base}/tops.json")
+            else:
+                logger.warning(f"Failed to upload tops.json: {r.stderr}")
 
     def prune_speeches_before(self, cutoff_date: datetime) -> int:
         """Delete all speech chunks with date < cutoff_date from the vector store.
@@ -291,8 +319,8 @@ Verwende so viele Zitate wie nötig, um die Kernposition zu belegen. Zitate müs
         logger.debug(f"return")
         return (answer.content, cos)
 
-    def summarize_by_top_key(self, top_key: str, party: str) -> str | None:
-        """Fetch all speech chunks for a TOP + party and generate a summary."""
+    def _get_context(self, top_key: str, party: str) -> str | None:
+        """Return deduplicated context string for top_key + party, or None if no chunks."""
         col = self.vector_store._collection
         results = col.get(
             where={"$and": [
@@ -304,32 +332,56 @@ Verwende so viele Zitate wie nötig, um die Kernposition zu belegen. Zitate müs
         )
         if not results["documents"]:
             return None
-
         seen_docs = set()
         unique_chunks = []
         for doc, meta in zip(results["documents"], results["metadatas"]):
             if doc not in seen_docs:
                 seen_docs.add(doc)
                 unique_chunks.append((doc, meta))
-
-        context = "\n\n".join(
+        return "\n\n".join(
             f"[{meta.get('id', 'unknown')}] {doc}"
             for doc, meta in unique_chunks
         )
 
+    def summarize_by_top_key(self, top_key: str, party: str) -> str | None:
+        """Fetch all speech chunks for a TOP + party and generate a summary."""
+        context = self._get_context(top_key, party)
+        if context is None:
+            return None
+
         prompt_template = ChatPromptTemplate.from_messages([
             ("system", """Du bist ein politischer Analyst. Fasse zusammen, was die Partei zu diesem Tagesordnungspunkt gesagt hat.
 Antworte AUSSCHLIESSLICH auf Basis des bereitgestellten Kontexts. Verwende kein Vorwissen.
+Wähle mindestens 3 wörtliche Zitate aus dem Kontext, die die Kernposition belegen. Verwende so viele wie nötig.
 Formatiere deine Antwort genau so:
 **Kernposition:** [ein Satz]
 
 *"[exaktes wörtliches Zitat aus dem Kontext]"* [ID der Rede]
-*"[exaktes wörtliches Zitat aus dem Kontext]"* [ID der Rede]"""),
+*"[exaktes wörtliches Zitat aus dem Kontext]"* [ID der Rede]
+*"[exaktes wörtliches Zitat aus dem Kontext]"* [ID der Rede]
+..."""),
             ("human", "Kontext: {context}"),
         ])
         prompt = prompt_template.invoke({"context": context})
         answer = self.model.invoke(prompt)
         return answer.content
+
+    def regenerate_kernposition(self, top_key: str, party: str) -> str | None:
+        """Re-generate only the Kernposition line from the same chunks."""
+        context = self._get_context(top_key, party)
+        if context is None:
+            return None
+
+        prompt_template = ChatPromptTemplate.from_messages([
+            ("system", """Du bist ein politischer Analyst. Fasse in einem Satz zusammen, was die Partei zu diesem Tagesordnungspunkt gesagt hat.
+Antworte AUSSCHLIESSLICH auf Basis des bereitgestellten Kontexts. Verwende kein Vorwissen.
+Antworte NUR mit dieser einen Zeile:
+**Kernposition:** [ein Satz]"""),
+            ("human", "Kontext: {context}"),
+        ])
+        prompt = prompt_template.invoke({"context": context})
+        answer = self.model.invoke(prompt)
+        return answer.content.strip()
 
     def shutdown(self):
         """Clean up resources if needed."""

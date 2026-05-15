@@ -18,6 +18,7 @@ LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
 # 2. Deployed: External ChromaDB VM (requires CHROMADB_HOST, no DATA_CSV needed)
 
 BUNDESTAG_API_KEY = os.environ.get("BUNDESTAG_API_KEY")
+UPDATE_SECRET_TOKEN = os.environ.get("UPDATE_SECRET_TOKEN")
 CHROMADB_HOST = os.environ.get("CHROMADB_HOST")  # For external ChromaDB (deployed)
 CHROMADB_PORT = os.environ.get("CHROMADB_PORT", "8000")  # Default port
 PERSIST_DIR = os.environ.get("PERSIST_DIR")  # For embedded Chroma (local dev)
