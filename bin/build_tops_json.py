@@ -26,8 +26,17 @@ def classify_tops(tops: dict) -> dict:
     if not to_classify:
         return {}
 
+    def _label(v):
+        if v.get('title'):
+            return v['title']
+        if v.get('subtitle'):
+            return v['subtitle']
+        subs = v.get('subtopics') or []
+        titles = [s['title'] for s in subs if s.get('title')]
+        return '; '.join(titles[:3]) if titles else '(kein Titel)'
+
     lines = "\n".join(
-        f"{k}: {(v.get('title') or v.get('subtitle') or '(kein Titel)').strip()}"
+        f"{k}: {_label(v).strip()}"
         for k, v in to_classify.items()
     )
 

@@ -7,7 +7,7 @@ def require_env(*names: str):
     if missing:
         raise RuntimeError(f"Missing required environment variables: {missing}")
 
-load_dotenv()
+load_dotenv(override=True)
 
 require_env("GOOGLE_API_KEY")
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY") # langchain_google_genai

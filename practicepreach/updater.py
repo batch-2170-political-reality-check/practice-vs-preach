@@ -153,8 +153,17 @@ def _update_tops_json(xml_files: list[Path], model) -> None:
 
     to_classify = {k: v for k, v in new_tops.items() if k not in existing and not v.get("topic")}
     if to_classify:
+        def _label(v):
+            if v.get('title'):
+                return v['title']
+            if v.get('subtitle'):
+                return v['subtitle']
+            subs = v.get('subtopics') or []
+            titles = [s['title'] for s in subs if s.get('title')]
+            return '; '.join(titles[:3]) if titles else '(kein Titel)'
+
         lines = "\n".join(
-            f"{k}: {(v.get('title') or v.get('subtitle') or '(kein Titel)').strip()}"
+            f"{k}: {_label(v).strip()}"
             for k, v in to_classify.items()
         )
         try:

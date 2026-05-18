@@ -1,3 +1,4 @@
+import re
 import requests, os, time, csv, sys
 import BundestagsAPy
 import pandas as pd
@@ -55,6 +56,24 @@ def process_bundestag_xml(url: str, df: pd.DataFrame):
                           'text': node.text}
 
 
+def _extract_nas_title(nas: str) -> str:
+    """Extract bill/motion title from a procedural NaS string when no T_fett is present."""
+    m = re.search(r'Entwurfs? eines Gesetzes\s+(.+)$', nas, re.DOTALL)
+    if m:
+        return ('Entwurf eines Gesetzes ' + m.group(1)).strip()
+    return ''
+
+
+def _drucksache_pdf_url(nr: str) -> str:
+    """Construct dserver.bundestag.de PDF URL from 'WP/NUM' string."""
+    try:
+        wp, num = nr.split("/")
+        num_str = num.zfill(5)
+        return f"https://dserver.bundestag.de/btd/{wp}/{num_str[:3]}/{wp}{num_str}.pdf"
+    except Exception:
+        return ""
+
+
 def build_tops_lookup(url: str) -> dict:
     """
     Extract TOP metadata from an XML file.
@@ -72,20 +91,83 @@ def build_tops_lookup(url: str) -> dict:
         if not top_id:
             continue
         top_key = f"{session_id}_{top_id}" if session_id else top_id
-        t_fett = punkt.find(".//p[@klasse='T_fett']")
-        t_nas = punkt.find(".//p[@klasse='T_NaS']")
-        if t_nas is None:
-            t_nas = punkt.find(".//p[@klasse='T_ZP_NaS']")
-
         def _clean(node):
             if node is None or not node.text:
                 return ""
-            import re
-            # Strip leading whitespace, dashes, and ZP labels e.g. "\t\t–\tZP 4\t"
             return re.sub(r'^[\s\t–\-]*(?:ZP\s*\d+\s*)?', '', node.text).strip()
+
+        # Collect T_fett / T_NaS only until the first subtopic NaS (a), b), ...) is reached.
+        # T_fett/T_NaS that belong to a subtopic must not become the TOP-level title.
+        t_fett = None
+        t_nas = None
+        for child in list(punkt):
+            if child.tag != 'p':
+                continue
+            klasse = child.get('klasse', '')
+            text = ''.join(child.itertext()).strip()
+            if klasse in ('T_NaS', 'T_ZP_NaS'):
+                if re.match(r'^(?:\d+\s+)?[a-z]\)', text):
+                    break  # Pattern A subtopic — stop
+                t_nas = child
+            elif klasse == 'T_fett':
+                t_fett = child
+            elif klasse == 'J':
+                if re.search(r'Tagesordnungspunkt[\s\xa0]*\d+[a-z]:', text):
+                    break  # Pattern B subtopic — stop
 
         title = t_fett.text.strip() if t_fett is not None and t_fett.text else _clean(t_nas)
         subtitle = _clean(t_nas)
+
+        # Parse subtopics (a, b, c...) with Drucksache references.
+        # Pattern A: T_NaS starts with "a)" / "18 a)" (shared debate, e.g. TOP 18)
+        # Pattern B: J element announces "Tagesordnungspunkt 19a:" (sequential items, e.g. TOP 19)
+        subtopics = []
+        pending = None
+        top_drucksache = ''
+        top_drucksache_url = ''
+        for child in list(punkt):
+            if child.tag == 'rede':
+                break
+            if child.tag != 'p':
+                continue
+            klasse = child.get('klasse', '')
+            text = ''.join(child.itertext()).strip()
+            if klasse in ('T_NaS', 'T_ZP_NaS'):
+                m = re.match(r'^(?:\d+\s+)?([a-z])\)', text)
+                if m:
+                    # Pattern A: letter-prefixed NaS starts a new subtopic
+                    if pending is not None:
+                        subtopics.append(pending)
+                    pending = {'key': m.group(1), 'nas': text, 'title': '', 'drucksache': '', 'drucksache_url': ''}
+                elif pending is not None and not pending['nas']:
+                    pending['nas'] = text
+            elif klasse == 'J':
+                # Pattern B: "Tagesordnungspunkt 19a:" announces a subtopic
+                m = re.search(r'Tagesordnungspunkt[\s\xa0]*\d+([a-z]):', text)
+                if m:
+                    if pending is not None:
+                        subtopics.append(pending)
+                    pending = {'key': m.group(1), 'nas': '', 'title': '', 'drucksache': '', 'drucksache_url': ''}
+            elif klasse == 'T_fett' and pending is not None:
+                if not pending['title']:
+                    pending['title'] = text
+            elif klasse == 'T_Drs':
+                dr_m = re.search(r'(\d+/\d+)', text)
+                if dr_m:
+                    nr = dr_m.group(1)
+                    if pending is not None:
+                        pending['drucksache'] = nr
+                        pending['drucksache_url'] = _drucksache_pdf_url(nr)
+                    elif not top_drucksache:
+                        top_drucksache = nr
+                        top_drucksache_url = _drucksache_pdf_url(nr)
+        if pending is not None:
+            subtopics.append(pending)
+
+        for s in subtopics:
+            if not s['title'] and s['nas']:
+                s['title'] = _extract_nas_title(s['nas'])
+
         tops[top_key] = {
             "top_key": top_key,
             "top_id": top_id,
@@ -93,6 +175,9 @@ def build_tops_lookup(url: str) -> dict:
             "subtitle": subtitle,
             "session": session_id,
             "date": a_date,
+            "drucksache": top_drucksache,
+            "drucksache_url": top_drucksache_url,
+            "subtopics": subtopics,
         }
 
     return tops
