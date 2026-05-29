@@ -151,7 +151,7 @@ def _update_tops_json(xml_files: list[Path], model) -> None:
     for xml_file in xml_files:
         new_tops.update(build_tops_lookup(str(xml_file)))
 
-    to_classify = {k: v for k, v in new_tops.items() if k not in existing and not v.get("topic")}
+    to_classify = {k: v for k, v in new_tops.items() if k not in existing and (not v.get("topic") or len(v.get("topic", "")) > 60)}
     if to_classify:
         def _label(v):
             if v.get('title'):

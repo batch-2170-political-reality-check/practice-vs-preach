@@ -27,7 +27,7 @@ def process_bundestag_xml(url: str, df: pd.DataFrame):
 
     # path: <dbtplenarprotokoll>/<sitzungsverlauf>/<tagesordnungspunkt>/<rede>
     for punkt in root.findall("./sitzungsverlauf/tagesordnungspunkt"):
-        top_id = punkt.get("top-id", "")
+        top_id = punkt.get("top-id", "").replace('\xa0', ' ')
         # Unique key per TOP across sessions: e.g. "21063_Tagesordnungspunkt 20"
         top_key = f"{session_id}_{top_id}" if session_id else top_id
 
@@ -87,7 +87,7 @@ def build_tops_lookup(url: str) -> dict:
 
     tops = {}
     for punkt in root.findall("./sitzungsverlauf/tagesordnungspunkt"):
-        top_id = punkt.get("top-id", "")
+        top_id = punkt.get("top-id", "").replace('\xa0', ' ')
         if not top_id:
             continue
         top_key = f"{session_id}_{top_id}" if session_id else top_id
@@ -108,7 +108,8 @@ def build_tops_lookup(url: str) -> dict:
             if klasse in ('T_NaS', 'T_ZP_NaS'):
                 if re.match(r'^(?:\d+\s+)?[a-z]\)', text):
                     break  # Pattern A subtopic — stop
-                t_nas = child
+                if t_nas is None:
+                    t_nas = child
             elif klasse == 'T_fett':
                 t_fett = child
             elif klasse == 'J':

@@ -21,7 +21,7 @@ def classify_tops(tops: dict) -> dict:
     """Send TOP titles to Gemini. Re-classifies entries where Gemini previously echoed the key."""
     to_classify = {
         k: v for k, v in tops.items()
-        if not v.get("topic") or _generic.match(v.get("topic", ""))
+        if not v.get("topic") or _generic.match(v.get("topic", "")) or len(v.get("topic", "")) > 60
     }
     if not to_classify:
         return {}
