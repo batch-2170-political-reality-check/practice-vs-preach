@@ -231,9 +231,13 @@ def run_update(rag, since_date: str = None, prune_weeks: int = 4) -> dict:
     else:
         logger.info("No new sessions found.")
 
-    # Prune old speeches (keep last prune_weeks weeks)
-    cutoff = datetime.now() - timedelta(weeks=prune_weeks)
-    pruned = rag.prune_speeches_before(cutoff)
+    # Only prune if new data was successfully embedded
+    pruned = 0
+    if n_embedded > 0:
+        cutoff = datetime.now() - timedelta(weeks=prune_weeks)
+        pruned = rag.prune_speeches_before(cutoff)
+    else:
+        logger.info("Skipping prune — no new data embedded.")
 
     # Update tops.json with newly parsed TOPs
     if xml_files:

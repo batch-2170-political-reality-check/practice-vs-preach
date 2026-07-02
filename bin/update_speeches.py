@@ -30,8 +30,8 @@ def main():
     parser.add_argument(
         "--prune-weeks",
         type=int,
-        default=4,
-        help="Remove speeches older than this many weeks (default: 4).",
+        default=52,
+        help="Remove speeches older than this many weeks (default: 52).",
     )
     args = parser.parse_args()
 

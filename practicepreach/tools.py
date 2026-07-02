@@ -118,6 +118,13 @@ def build_tops_lookup(url: str) -> dict:
 
         title = t_fett.text.strip() if t_fett is not None and t_fett.text else _clean(t_nas)
         subtitle = _clean(t_nas)
+        # Strip procedural-only subtitles that carry no content value
+        _procedural = re.compile(
+            r'^(Vereinbarte Debatte:?|Aktuelle Stunde|Fragestunde|Befragung der Bundesregierung)$',
+            re.IGNORECASE
+        )
+        if _procedural.match(subtitle):
+            subtitle = ""
 
         # Parse subtopics (a, b, c...) with Drucksache references.
         # Pattern A: T_NaS starts with "a)" / "18 a)" (shared debate, e.g. TOP 18)

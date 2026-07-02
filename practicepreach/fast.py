@@ -158,12 +158,28 @@ async def get_summaries(top_key: str):
 
     raw_cache = _read_cache().get(top_key, {})
     cached = {p: _normalize_entry(e) for p, e in raw_cache.items()}
+
+    # General summary first — party prompts use it to avoid repetition
+    general_text = raw_cache.get("general", {}).get("summary", "") if isinstance(raw_cache.get("general"), dict) else ""
+    if not general_text:
+        subtitle = ""
+        if TOPS_JSON.exists():
+            tops = json.loads(TOPS_JSON.read_text())
+            subtitle = tops.get(top_key, {}).get("subtitle", "")
+        loop = asyncio.get_event_loop()
+        general_text = await loop.run_in_executor(None, rag.summarize_topic_general, top_key, subtitle)
+        if general_text:
+            with _cache_lock:
+                cache = _read_cache()
+                cache.setdefault(top_key, {})["general"] = {"summary": general_text}
+                SUMMARIES_CACHE.write_text(json.dumps(cache, ensure_ascii=False, indent=2))
+
     parties_to_generate = [p for p in constants.PARTIES_LIST if p not in cached]
 
     if parties_to_generate:
         async def process_party(party: str):
             loop = asyncio.get_event_loop()
-            summary = await loop.run_in_executor(None, rag.summarize_by_top_key, top_key, party)
+            summary = await loop.run_in_executor(None, rag.summarize_by_top_key, top_key, party, general_text)
             return party, summary
 
         logger.info(f"Generating summaries for top_key={top_key}: {parties_to_generate}")
@@ -184,7 +200,7 @@ async def get_summaries(top_key: str):
     else:
         logger.info(f"Serving cached summaries for top_key={top_key}")
 
-    return {
+    response = {
         p: {
             "summary": _combine_summary(e.get("kernposition", ""), e.get("quotes_text", "")),
             "label": None,
@@ -192,6 +208,9 @@ async def get_summaries(top_key: str):
         }
         for p, e in cached.items()
     }
+    if general_text:
+        response["general"] = {"summary": general_text}
+    return response
 
 
 @app.post("/summaries/refresh")
@@ -229,11 +248,12 @@ _update_running = False
 
 
 @app.post("/admin/update")
-async def admin_update(request: Request):
+async def admin_update(request: Request, since_date: str = None):
     """
-    Trigger the weekly speech update pipeline.
+    Trigger the update pipeline.
     Runs in a background thread so the API stays responsive.
     Protected by the UPDATE_SECRET_TOKEN env var (Bearer token).
+    Optional query param: since_date (YYYY-MM-DD) to override auto-detected start date.
     """
     global _update_running
 
@@ -252,10 +272,10 @@ async def admin_update(request: Request):
         global _update_running
         _update_running = True
         try:
-            result = run_update(rag)
-            logger.info(f"Weekly update complete: {result}")
+            result = run_update(rag, since_date=since_date, prune_weeks=52)
+            logger.info(f"Update complete: {result}")
         except Exception as exc:
-            logger.error(f"Weekly update failed: {exc}", exc_info=True)
+            logger.error(f"Update failed: {exc}", exc_info=True)
         finally:
             _update_running = False
 
