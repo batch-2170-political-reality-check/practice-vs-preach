@@ -1,12 +1,13 @@
 import logging
 import os
+import time
 
 import chromadb
 from langchain.chat_models import init_chat_model
 from langchain_chroma import Chroma
 from langchain_community.document_loaders.csv_loader import CSVLoader
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_text_splitters import NLTKTextSplitter
 
 from datetime import datetime
@@ -14,7 +15,7 @@ from datetime import datetime
 from practicepreach.constants import *
 from practicepreach.params import *
 
-GCS_LOCAL_CACHE = "/tmp/chroma_store_e5_3months"
+GCS_LOCAL_CACHE = "/tmp/chroma_store_gemini"
 
 logger = logging.getLogger(__name__)
 
@@ -27,13 +28,11 @@ class Rag:
         else:
             logger.info("API Key not found in environment variables.")
 
-        device = os.environ.get("TORCH_DEVICE", "cpu")
-        self.embeddings = HuggingFaceEmbeddings(
-            model_name="intfloat/multilingual-e5-large",
-            model_kwargs={"device": device},
-            encode_kwargs={"batch_size": 8},
+        self.embeddings = GoogleGenerativeAIEmbeddings(
+            model="gemini-embedding-001",
+            google_api_key=GOOGLE_API_KEY,
         )
-        self.model = init_chat_model("google_genai:gemini-2.5-flash-lite")
+        self.model = init_chat_model("google_genai:gemini-2.5-flash")
 
         # Initialize Chroma - either external, GCS-backed, or embedded
         if USE_EXTERNAL_CHROMA:
@@ -166,17 +165,17 @@ class Rag:
         return int(dt.strftime("%Y%m%d"))
 
 
-    def embed_and_store(self, doc, text_splitter, batch_size=500):
+    def embed_and_store(self, doc, text_splitter, batch_size=100):
         """Split documents into chunks and store them in a vector store."""
-        # Split the pages into chunks
         all_splits = text_splitter.split_documents(doc)
         num_of_splits = len(all_splits)
         logger.info(f"Total chunks to embed: {num_of_splits}")
 
-        # Add the chunks to the vector store in batches
         for i in range(0, num_of_splits, batch_size):
             batch = all_splits[i:i + batch_size]
             self.vector_store.add_documents(documents=batch)
+            logger.info(f"Embedded {min(i + batch_size, num_of_splits)}/{num_of_splits} chunks")
+            time.sleep(2)
 
         return num_of_splits
 
