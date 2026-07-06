@@ -63,10 +63,6 @@ class Rag:
                 embedding_function=self.embeddings,
             )
 
-            num_of_stored = self.vector_store._collection.count()
-            if num_of_stored == 0:
-                num_of_chunks_speech = self.add_to_vector_store(DATA_CSV)
-                logger.info(f"Embedded {num_of_chunks_speech} chunks into the vector store.")
 
         num_of_stored = self.vector_store._collection.count()
         logger.info(f"Vector store has {num_of_stored} vectores.")

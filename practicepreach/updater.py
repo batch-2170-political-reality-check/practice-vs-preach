@@ -151,7 +151,9 @@ def _update_tops_json(xml_files: list[Path], model) -> None:
     for xml_file in xml_files:
         new_tops.update(build_tops_lookup(str(xml_file)))
 
-    to_classify = {k: v for k, v in new_tops.items() if k not in existing and (not v.get("topic") or len(v.get("topic", "")) > 60)}
+    to_classify = {k: v for k, v in new_tops.items()
+                   if (k not in existing or not existing[k].get("topic"))
+                   and (not v.get("topic") or len(v.get("topic", "")) > 60)}
     if to_classify:
         def _label(v):
             if v.get('title'):
@@ -193,6 +195,9 @@ def _update_tops_json(xml_files: list[Path], model) -> None:
                 new_tops[key]["topic"] = fallback[:80]
                 logger.warning(f"Used title as fallback topic for {key}: {fallback[:80]}")
 
+    for key, new_val in new_tops.items():
+        if key in existing and not new_val.get("topic") and existing[key].get("topic"):
+            new_val["topic"] = existing[key]["topic"]
     existing.update(new_tops)
     TOPS_JSON.write_text(json.dumps(existing, ensure_ascii=False, indent=2))
     logger.info(f"tops.json updated: {len(existing)} total TOPs, {len(new_tops)} from this batch")
