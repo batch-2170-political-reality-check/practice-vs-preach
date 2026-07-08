@@ -172,6 +172,7 @@ def _update_tops_json(xml_files: list[Path], model) -> None:
             response = model.invoke(
                 "Du bekommst eine Liste von Bundestagstagesordnungspunkten.\n"
                 "Weise jedem ein kurzes, konsistentes Thema zu (2–4 Wörter auf Deutsch).\n"
+                "Wenn ein Punkt mehrere Themen umfasst, trenne sie mit Komma (z.B. 'Wahlalter, Grundgesetz').\n"
                 "Format: top_key: Thema — eine Zeile pro Punkt, keine Erklärungen.\n\n"
                 + lines
             )

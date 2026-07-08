@@ -32,7 +32,10 @@ class Rag:
             model="gemini-embedding-001",
             google_api_key=GOOGLE_API_KEY,
         )
-        self.model = init_chat_model("google_genai:gemini-2.5-flash")
+        self.model = init_chat_model(
+            "google_genai:gemini-2.5-flash",
+            thinking_budget=0,
+        )
 
         # Initialize Chroma - either external, GCS-backed, or embedded
         if USE_EXTERNAL_CHROMA:
@@ -94,6 +97,17 @@ class Rag:
         else:
             logger.warning("tops.json not in GCS yet — will be created on first update")
 
+        # Download summaries_cache.json
+        cache_local = Path("data/summaries_cache.json")
+        r2 = subprocess.run(
+            ["gsutil", "cp", f"{gcs_base}/summaries_cache.json", str(cache_local)],
+            capture_output=True, text=True
+        )
+        if r2.returncode == 0:
+            logger.info("Downloaded summaries_cache.json from GCS")
+        else:
+            logger.warning("summaries_cache.json not in GCS yet — starting with empty cache")
+
     def upload_to_gcs(self, gcs_path: str = None):
         """Upload local Chroma cache + tops.json back to GCS after an update."""
         import subprocess
@@ -119,6 +133,18 @@ class Rag:
                 logger.info(f"Uploaded tops.json to {gcs_base}/tops.json")
             else:
                 logger.warning(f"Failed to upload tops.json: {r.stderr}")
+
+        cache_local = Path("data/summaries_cache.json")
+        if cache_local.exists():
+            gcs_base = target.rsplit('/', 1)[0]
+            r2 = subprocess.run(
+                ["gsutil", "cp", str(cache_local), f"{gcs_base}/summaries_cache.json"],
+                capture_output=True, text=True
+            )
+            if r2.returncode == 0:
+                logger.info(f"Uploaded summaries_cache.json to {gcs_base}/summaries_cache.json")
+            else:
+                logger.warning(f"Failed to upload summaries_cache.json: {r2.stderr}")
 
     def prune_speeches_before(self, cutoff_date: datetime) -> int:
         """Delete all speech chunks with date < cutoff_date from the vector store.

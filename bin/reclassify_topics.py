@@ -22,6 +22,6 @@ logging.basicConfig(
 xml_dir = Path("data/xml_updates")
 xml_files = sorted(xml_dir.glob("*.xml"))
 
-model = init_chat_model("google_genai:gemini-2.5-flash")
+model = init_chat_model("google_genai:gemini-2.5-flash", thinking_budget=0)
 _update_tops_json(xml_files, model)
 print("Done.")
