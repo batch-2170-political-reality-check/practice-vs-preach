@@ -10,10 +10,12 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
+import smtplib
 import subprocess
+from email.mime.text import MIMEText
 
 from practicepreach import constants
-from practicepreach.params import LOG_LEVEL, UPDATE_SECRET_TOKEN, GCS_CHROMA_PATH
+from practicepreach.params import LOG_LEVEL, UPDATE_SECRET_TOKEN, GCS_CHROMA_PATH, GMAIL_USER, GMAIL_APP_PASSWORD
 from practicepreach.rag import Rag
 from practicepreach.updater import run_update
 
@@ -272,12 +274,25 @@ async def submit_feedback(body: FeedbackBody):
         FEEDBACK_FILE.parent.mkdir(parents=True, exist_ok=True)
         FEEDBACK_FILE.write_text(json.dumps(feedback, ensure_ascii=False, indent=2))
 
-    if GCS_CHROMA_PATH:
-        gcs_base = GCS_CHROMA_PATH.rsplit("/", 1)[0]
-        subprocess.run(
-            ["gsutil", "cp", str(FEEDBACK_FILE), f"{gcs_base}/feedback.json"],
-            capture_output=True,
-        )
+    if GMAIL_USER and GMAIL_APP_PASSWORD:
+        try:
+            body_lines = [
+                f"Seite: {body.from_url or '—'}",
+                f"E-Mail: {body.email or '—'}",
+                "",
+                body.text.strip(),
+            ]
+            msg = MIMEText("\n".join(body_lines), "plain", "utf-8")
+            msg["Subject"] = "Neues Feedback – Bundestag im O-Ton"
+            msg["From"] = GMAIL_USER
+            msg["To"] = GMAIL_USER
+            with smtplib.SMTP("smtp.gmail.com", 587) as smtp:
+                smtp.starttls()
+                smtp.login(GMAIL_USER, GMAIL_APP_PASSWORD)
+                smtp.send_message(msg)
+            logger.info("Feedback email sent")
+        except Exception as e:
+            logger.warning(f"Feedback email failed: {e}")
 
     logger.info(f"Feedback received from_url={body.from_url!r}")
     return {"status": "ok"}

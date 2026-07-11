@@ -1,4 +1,5 @@
 .env
+env_gcloud_run.yaml
 data/
 fetched_data/
 .DS_Store
