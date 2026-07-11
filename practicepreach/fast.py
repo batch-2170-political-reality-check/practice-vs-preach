@@ -6,17 +6,22 @@ from datetime import datetime, date
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
+from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
+import subprocess
+
 from practicepreach import constants
-from practicepreach.params import LOG_LEVEL, UPDATE_SECRET_TOKEN
+from practicepreach.params import LOG_LEVEL, UPDATE_SECRET_TOKEN, GCS_CHROMA_PATH
 from practicepreach.rag import Rag
 from practicepreach.updater import run_update
 
 TOPS_JSON = Path("data/tops.json")
 SUMMARIES_CACHE = Path("data/summaries_cache.json")
+FEEDBACK_FILE = Path("data/feedback.json")
 _cache_lock = threading.Lock()
+_feedback_lock = threading.Lock()
 
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL, logging.INFO),
@@ -242,6 +247,40 @@ async def refresh_general_summary(top_key: str):
     if general_text is None:
         raise HTTPException(status_code=404, detail="Keine Redebeiträge gefunden.")
     return {"summary": general_text}
+
+
+class FeedbackBody(BaseModel):
+    text: str
+    email: str = ""
+    from_url: str = ""
+
+@app.post("/feedback")
+async def submit_feedback(body: FeedbackBody):
+    if not body.text.strip():
+        raise HTTPException(status_code=400, detail="Text darf nicht leer sein.")
+
+    entry = {
+        "text": body.text.strip(),
+        "email": body.email.strip(),
+        "from_url": body.from_url,
+        "timestamp": datetime.utcnow().isoformat(),
+    }
+
+    with _feedback_lock:
+        feedback = json.loads(FEEDBACK_FILE.read_text()) if FEEDBACK_FILE.exists() else []
+        feedback.append(entry)
+        FEEDBACK_FILE.parent.mkdir(parents=True, exist_ok=True)
+        FEEDBACK_FILE.write_text(json.dumps(feedback, ensure_ascii=False, indent=2))
+
+    if GCS_CHROMA_PATH:
+        gcs_base = GCS_CHROMA_PATH.rsplit("/", 1)[0]
+        subprocess.run(
+            ["gsutil", "cp", str(FEEDBACK_FILE), f"{gcs_base}/feedback.json"],
+            capture_output=True,
+        )
+
+    logger.info(f"Feedback received from_url={body.from_url!r}")
+    return {"status": "ok"}
 
 
 def _str2date(s: str) -> date:
