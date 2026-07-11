@@ -28,6 +28,13 @@ def process_bundestag_xml(url: str, df: pd.DataFrame):
     # path: <dbtplenarprotokoll>/<sitzungsverlauf>/<tagesordnungspunkt>/<rede>
     for punkt in root.findall("./sitzungsverlauf/tagesordnungspunkt"):
         top_id = punkt.get("top-id", "").replace('\xa0', ' ')
+        if top_id and not re.search(r'\d', top_id):
+            for p in punkt.findall("./p[@klasse='J']"):
+                text = ''.join(p.itertext()).strip()
+                m = re.search(r'(Tagesordnungspunkt|Zusatzpunkt)[\s\xa0]+(\d+)', text)
+                if m:
+                    top_id = f"{m.group(1)} {m.group(2)}"
+                    break
         # Unique key per TOP across sessions: e.g. "21063_Tagesordnungspunkt 20"
         top_key = f"{session_id}_{top_id}" if session_id else top_id
 
@@ -58,9 +65,12 @@ def process_bundestag_xml(url: str, df: pd.DataFrame):
 
 def _extract_nas_title(nas: str) -> str:
     """Extract bill/motion title from a procedural NaS string when no T_fett is present."""
-    m = re.search(r'Entwurfs? eines Gesetzes\s+(.+)$', nas, re.DOTALL)
+    # Match "Entwurf(s) eines [optional ordinal adjective] Gesetzes ..." — ordinals like
+    # "Ersten", "Zweiten", "Dritten" etc. are common in German parliamentary bill titles.
+    # [\w\.]+ also matches "..." (ellipsis) used in abbreviated XML titles
+    m = re.search(r'(Entwurfs? eines (?:[\w\.]+\s+)*Gesetzes\s.+)', nas, re.DOTALL)
     if m:
-        return ('Entwurf eines Gesetzes ' + m.group(1)).strip()
+        return re.sub(r'^Entwurfs\b', 'Entwurf', m.group(1)).strip()
     return ''
 
 
@@ -90,6 +100,13 @@ def build_tops_lookup(url: str) -> dict:
         top_id = punkt.get("top-id", "").replace('\xa0', ' ')
         if not top_id:
             continue
+        if not re.search(r'\d', top_id):
+            for p in punkt.findall("./p[@klasse='J']"):
+                text = ''.join(p.itertext()).strip()
+                m = re.search(r'(Tagesordnungspunkt|Zusatzpunkt)[\s\xa0]+(\d+)', text)
+                if m:
+                    top_id = f"{m.group(1)} {m.group(2)}"
+                    break
         top_key = f"{session_id}_{top_id}" if session_id else top_id
         def _clean(node):
             if node is None or not node.text:
@@ -106,7 +123,7 @@ def build_tops_lookup(url: str) -> dict:
             klasse = child.get('klasse', '')
             text = ''.join(child.itertext()).strip()
             if klasse in ('T_NaS', 'T_ZP_NaS'):
-                if re.match(r'^(?:\d+\s+)?[a-z]\)', text):
+                if re.match(r'^\s*(?:\d+\s+)?[a-z]\)', text):
                     break  # Pattern A subtopic — stop
                 if t_nas is None:
                     t_nas = child
@@ -141,12 +158,17 @@ def build_tops_lookup(url: str) -> dict:
             klasse = child.get('klasse', '')
             text = ''.join(child.itertext()).strip()
             if klasse in ('T_NaS', 'T_ZP_NaS'):
-                m = re.match(r'^(?:\d+\s+)?([a-z])\)', text)
+                m = re.match(r'^\s*(?:\d+\s+)?([a-z])\)', text)
                 if m:
-                    # Pattern A: letter-prefixed NaS starts a new subtopic
-                    if pending is not None:
-                        subtopics.append(pending)
-                    pending = {'key': m.group(1), 'nas': text, 'title': '', 'drucksache': '', 'drucksache_url': ''}
+                    letter = m.group(1)
+                    if pending is not None and pending['key'] == letter and not pending['nas']:
+                        # Pattern B already opened this subtopic — fill in the NaS instead of duplicating
+                        pending['nas'] = text
+                    else:
+                        # Pattern A: new subtopic
+                        if pending is not None:
+                            subtopics.append(pending)
+                        pending = {'key': letter, 'nas': text, 'title': '', 'drucksache': '', 'drucksache_url': ''}
                 elif pending is not None and not pending['nas']:
                     pending['nas'] = text
             elif klasse == 'J':

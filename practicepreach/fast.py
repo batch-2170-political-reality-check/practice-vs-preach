@@ -240,6 +240,24 @@ async def refresh_summary(top_key: str, party: str):
         "refresh_count": new_count,
     }
 
+@app.post("/summaries/refresh-general")
+async def refresh_general_summary(top_key: str):
+    rag: Rag = app.state.rag
+    subtitle = ""
+    if TOPS_JSON.exists():
+        tops = json.loads(TOPS_JSON.read_text())
+        subtitle = tops.get(top_key, {}).get("subtitle", "")
+    loop = asyncio.get_event_loop()
+    general_text = await loop.run_in_executor(None, rag.summarize_topic_general, top_key, subtitle)
+    if general_text is None:
+        raise HTTPException(status_code=404, detail="Keine Redebeiträge gefunden.")
+    with _cache_lock:
+        cache = _read_cache()
+        cache.setdefault(top_key, {})["general"] = {"summary": general_text}
+        SUMMARIES_CACHE.write_text(json.dumps(cache, ensure_ascii=False, indent=2))
+    return {"summary": general_text}
+
+
 def _str2date(s: str) -> date:
     return datetime.strptime(s, "%Y-%m-%d").date()
 
