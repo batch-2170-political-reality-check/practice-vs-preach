@@ -219,25 +219,15 @@ async def refresh_summary(top_key: str, party: str):
 
     with _cache_lock:
         entry = _normalize_entry(_read_cache().get(top_key, {}).get(party))
-    current_count = entry.get("count", 0)
-
-    if current_count >= MAX_REFRESHES:
-        raise HTTPException(
-            status_code=429,
-            detail=f"Maximale Anzahl an Regenerierungen ({MAX_REFRESHES}) erreicht.",
-        )
 
     quotes_text = entry.get("quotes_text", "")
     loop = asyncio.get_event_loop()
-    logger.info(f"Refreshing Kernposition for top_key={top_key}, party={party} (count={current_count+1})")
+    logger.info(f"Refreshing Kernposition for top_key={top_key}, party={party}")
     new_kernposition = await loop.run_in_executor(None, rag.regenerate_kernposition, top_key, party)
-    new_count = current_count + 1
-    if new_kernposition is not None:
-        _write_cache(top_key, party, new_kernposition, quotes_text, new_count)
     return {
         "summary": _combine_summary(new_kernposition or entry.get("kernposition", ""), quotes_text),
         "label": None,
-        "refresh_count": new_count,
+        "refresh_count": None,
     }
 
 @app.post("/summaries/refresh-general")
@@ -251,10 +241,6 @@ async def refresh_general_summary(top_key: str):
     general_text = await loop.run_in_executor(None, rag.summarize_topic_general, top_key, subtitle)
     if general_text is None:
         raise HTTPException(status_code=404, detail="Keine Redebeiträge gefunden.")
-    with _cache_lock:
-        cache = _read_cache()
-        cache.setdefault(top_key, {})["general"] = {"summary": general_text}
-        SUMMARIES_CACHE.write_text(json.dumps(cache, ensure_ascii=False, indent=2))
     return {"summary": general_text}
 
 
